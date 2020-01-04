@@ -19,19 +19,21 @@ static void on_error(
   const jiffy_err_t err
 ) {
   (void) p;
-  fprintf(stderr, "error: %s\n", jiffy_err_to_s(err));
+  fprintf(stderr, "E: error: %s\n", jiffy_err_to_s(err));
 }
 
 static void on_object_start(
   const jiffy_parser_t * const p
 ) {
   (void) p;
+  fprintf(stderr, "D: object start\n");
 }
 
 static void on_object_end(
   const jiffy_parser_t * const p
 ) {
   (void) p;
+  fprintf(stderr, "D: object end\n");
 }
 
 static const jiffy_parser_cbs_t CBS = {
@@ -53,6 +55,8 @@ int main(int argc, char *argv[]) {
     jiffy_parser_t parser;
     jiffy_parser_init(&parser, &CBS, &stack, NULL);
 
+    fprintf(stderr, "D: parsing \"%s\"\n", argv[i]);
+
     // parse argument
     if (!jiffy_parser_push(&parser, argv[i], strlen(argv[i]))) {
       dump_parser(&parser);
@@ -64,6 +68,8 @@ int main(int argc, char *argv[]) {
       dump_parser(&parser);
       exit(EXIT_FAILURE);
     }
+
+    fprintf(stderr, "D: parsing done\n");
   }
 
   return EXIT_SUCCESS;

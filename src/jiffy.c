@@ -1,6 +1,74 @@
 #include <stdbool.h> // bool
 #include "jiffy.h"
 
+#define CASE_WHITESPACE \
+  case ' ': \
+  case '\t': \
+  case '\v': \
+  case '\n': \
+  case '\r':
+
+#define CASE_NONZERO_NUMBER \
+  case '1': \
+  case '2': \
+  case '3': \
+  case '4': \
+  case '5': \
+  case '6': \
+  case '7': \
+  case '8': \
+  case '9':
+
+#define CASE_NUMBER \
+  case '0': \
+  case '1': \
+  case '2': \
+  case '3': \
+  case '4': \
+  case '5': \
+  case '6': \
+  case '7': \
+  case '8': \
+  case '9':
+
+#define CASE_HEX_AF_LO \
+  case 'a': \
+  case 'b': \
+  case 'c': \
+  case 'd': \
+  case 'e': \
+  case 'f':
+
+#define CASE_HEX_AF_HI \
+  case 'A': \
+  case 'B': \
+  case 'C': \
+  case 'D': \
+  case 'E': \
+  case 'F':
+
+#define CASE_HEX \
+  CASE_NUMBER \
+  CASE_HEX_AF_LO \
+  CASE_HEX_AF_HI
+
+static inline uint8_t
+nibble(
+  const uint8_t byte
+) {
+  switch (byte) {
+  CASE_NUMBER
+    return byte - '0';
+  CASE_HEX_AF_LO
+    return 10 + byte - 'a';
+  CASE_HEX_AF_HI
+    return 10 + byte - 'A';
+  default:
+    // FIXME
+    return 0;
+  }
+}
+
 static const char *
 JIFFY_ERRORS[] = {
 #define E(a, b) b
@@ -149,74 +217,6 @@ jiffy_parser_pop_state(
   return true;
 }
 
-#define CASE_WHITESPACE \
-  case ' ': \
-  case '\t': \
-  case '\v': \
-  case '\n': \
-  case '\r':
-
-#define CASE_NONZERO_NUMBER \
-  case '1': \
-  case '2': \
-  case '3': \
-  case '4': \
-  case '5': \
-  case '6': \
-  case '7': \
-  case '8': \
-  case '9':
-
-#define CASE_NUMBER \
-  case '0': \
-  case '1': \
-  case '2': \
-  case '3': \
-  case '4': \
-  case '5': \
-  case '6': \
-  case '7': \
-  case '8': \
-  case '9':
-
-#define CASE_HEX_AF_LO \
-  case 'a': \
-  case 'b': \
-  case 'c': \
-  case 'd': \
-  case 'e': \
-  case 'f':
-
-#define CASE_HEX_AF_HI \
-  case 'A': \
-  case 'B': \
-  case 'C': \
-  case 'D': \
-  case 'E': \
-  case 'F':
-
-#define CASE_HEX \
-  CASE_NUMBER \
-  CASE_HEX_AF_LO \
-  CASE_HEX_AF_HI
-
-static inline uint8_t
-nibble(
-  const uint8_t byte
-) {
-  switch (byte) {
-  CASE_NUMBER
-    return byte - '0';
-  CASE_HEX_AF_LO
-    return 10 + byte - 'a';
-  CASE_HEX_AF_HI
-    return 10 + byte - 'A';
-  default:
-    // FIXME
-    return 0;
-  }
-}
-
 #define PUSH(p, state) do { \
   if (!jiffy_parser_push_state((p), (state))) { \
     return false; \
@@ -234,19 +234,19 @@ jiffy_parser_push_codepoint(
   jiffy_parser_t * const p,
   const uint32_t code
 ) {
-  if (code < 0x40) {
+  if (code < 0x80) {
     EMIT(p, on_string_byte, (1 << 7) | code);
-  } else if (code < 0x1000) {
-    EMIT(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
+  } else if (code < 0x0800) {
+    EMIT(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x1f));
     EMIT(p, on_string_byte, (1 << 7) | (code & 0x3f));
-  } else if (code < 0x40000) {
-    EMIT(p, on_string_byte, (3 << 6) | ((code >> 12) & 0x3f));
-    EMIT(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
+  } else if (code < 0x10000) {
+    EMIT(p, on_string_byte, (0xe << 4) | ((code >> 12) & 0xf));
+    EMIT(p, on_string_byte, (1 << 7) | ((code >> 6) & 0x3f));
     EMIT(p, on_string_byte, (1 << 7) | (code & 0x3f));
-  } else if (code < 0x1000000) {
-    EMIT(p, on_string_byte, (3 << 6) | ((code >> 18) & 0x3f));
-    EMIT(p, on_string_byte, (3 << 6) | ((code >> 12) & 0x3f));
-    EMIT(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
+  } else if (code < 0x110000) {
+    EMIT(p, on_string_byte, (0xf << 4) | ((code >> 18) & 0x7));
+    EMIT(p, on_string_byte, (1 << 7) | ((code >> 12) & 0x3f));
+    EMIT(p, on_string_byte, (1 << 7) | ((code >> 6) & 0x3f));
     EMIT(p, on_string_byte, (1 << 7) | (code & 0x3f));
   } else {
     // FIXME: emit something here
