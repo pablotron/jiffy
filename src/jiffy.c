@@ -811,30 +811,6 @@ jiffy_parser_push(
   return true;
 }
 
-/**
- * Returns true if the parser is in the middle of a number that can be
- * flushed.
- *
- * Used in jiffy_parser_fini() to handle the case where the input is
- * a single number value.
- */
-/* 
- * static bool
- * jiffy_parser_has_pending_number_value(
- *   const jiffy_parser_t * const p
- * ) {
- *   switch (GET_STATE(p)) {
- *   case STATE_NUMBER_AFTER_LEADING_ZERO:
- *   case STATE_NUMBER_INT:
- *   case STATE_NUMBER_FRAC:
- *   case STATE_NUMBER_EXP_NUM:
- *     return true;
- *   default:
- *     return false;
- *   }
- * }
- */ 
-
 bool
 jiffy_parser_fini(
   jiffy_parser_t * const p
@@ -843,14 +819,6 @@ jiffy_parser_fini(
   if (!jiffy_parser_push_byte(p, ' ')) {
     return false;
   }
-/* 
- *   if (p->pos == 1 && jiffy_parser_has_pending_number_value(p)) {
- *     // flush remaining number
- *     if (!jiffy_parser_push_byte(p, ' ')) {
- *       return false;
- *     }
- *   }
- */ 
 
   // check to see if parsing is done
   if (p->pos || GET_STATE(p) != STATE_DONE) {
