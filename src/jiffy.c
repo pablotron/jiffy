@@ -300,8 +300,6 @@ retry:
     case '+':
     case '-':
       SWAP(p, STATE_NUMBER_AFTER_SIGN);
-      // p->cbs->on_number_start(p);
-      // p->cbs->on_number_byte(p, byte);
       FIRE(p, on_number_start);
       EMIT(p, on_number_byte, byte);
       break;
@@ -317,17 +315,14 @@ retry:
       break;
     case '{':
       SWAP(p, STATE_OBJECT_START);
-      // p->cbs->on_object_start(p);
       FIRE(p, on_object_start);
       break;
     case '[':
       SWAP(p, STATE_ARRAY_START);
-      // p->cbs->on_array_start(p);
       FIRE(p, on_array_start);
       break;
     case '"':
       SWAP(p, STATE_STRING);
-      // p->cbs->on_string_start(p);
       FIRE(p, on_string_start);
       break;
     default:
@@ -353,7 +348,6 @@ retry:
     break;
   case STATE_LIT_NUL:
     if (byte == 'l') {
-      // p->cbs->on_null(p);
       FIRE(p, on_null);
       POP(p);
     } else {
@@ -379,7 +373,6 @@ retry:
     break;
   case STATE_LIT_TRU:
     if (byte == 'e') {
-      // p->cbs->on_true(p);
       FIRE(p, on_true);
       POP(p);
     } else {
@@ -413,7 +406,6 @@ retry:
     break;
   case STATE_LIT_FALS:
     if (byte == 'e') {
-      // p->cbs->on_false(p);
       FIRE(p, on_false);
       POP(p);
     } else {
@@ -425,12 +417,10 @@ retry:
     switch (byte) {
     case '0':
       SWAP(p, STATE_NUMBER_AFTER_LEADING_ZERO);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     CASE_NONZERO_NUMBER
       SWAP(p, STATE_NUMBER_INT);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     default:
@@ -441,14 +431,11 @@ retry:
   case STATE_NUMBER_AFTER_LEADING_ZERO:
     if (byte == '.') {
       SWAP(p, STATE_NUMBER_AFTER_DOT);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
     } else if (byte == 'e' || byte == 'E') {
       SWAP(p, STATE_NUMBER_AFTER_EXP);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
     } else {
-      // p->cbs->on_number_end(p);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -458,22 +445,18 @@ retry:
   case STATE_NUMBER_INT:
     switch (byte) {
     CASE_NUMBER
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     case '.':
       SWAP(p, STATE_NUMBER_AFTER_DOT);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     case 'e':
     case 'E':
       SWAP(p, STATE_NUMBER_AFTER_EXP);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     default:
-      // p->cbs->on_number_end(p);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -484,7 +467,6 @@ retry:
     switch (byte) {
     CASE_NUMBER
       SWAP(p, STATE_NUMBER_FRAC);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     default:
@@ -495,17 +477,14 @@ retry:
   case STATE_NUMBER_FRAC:
     switch (byte) {
     CASE_NUMBER
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     case 'e':
     case 'E':
       SWAP(p, STATE_NUMBER_AFTER_EXP);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     default:
-      // p->cbs->on_number_end(p);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -517,12 +496,10 @@ retry:
     case '+':
     case '-':
       SWAP(p, STATE_NUMBER_AFTER_EXP_SIGN);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     CASE_NUMBER
       SWAP(p, STATE_NUMBER_EXP_NUM);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     default:
@@ -534,7 +511,6 @@ retry:
     switch (byte) {
     CASE_NUMBER
       SWAP(p, STATE_NUMBER_EXP_NUM);
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     default:
@@ -545,11 +521,9 @@ retry:
   case STATE_NUMBER_EXP_NUM:
     switch (byte) {
     CASE_NUMBER
-      // p->cbs->on_number_byte(p, byte);
       EMIT(p, on_number_byte, byte);
       break;
     default:
-      // p->cbs->on_number_end(p);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -559,7 +533,6 @@ retry:
   case STATE_STRING:
     switch (byte) {
     case '"':
-      // p->cbs->on_string_end(p);
       FIRE(p, on_string_end);
       POP(p);
       break;
@@ -571,7 +544,6 @@ retry:
     case '\n':
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     default:
-      // p->cbs->on_string_byte(p, byte);
       EMIT(p, on_string_byte, byte);
     }
 
@@ -579,47 +551,38 @@ retry:
   case STATE_STRING_ESC:
     switch (byte) {
     case '\\':
-      // p->cbs->on_string_byte(p, '\\');
       EMIT(p, on_string_byte, '\\');
       POP(p);
       break;
     case '/':
-      // p->cbs->on_string_byte(p, '/');
       EMIT(p, on_string_byte, '/');
       POP(p);
       break;
     case '\"':
-      // p->cbs->on_string_byte(p, '\"');
       EMIT(p, on_string_byte, '\"');
       POP(p);
       break;
     case 'n':
-      // p->cbs->on_string_byte(p, '\n');
       EMIT(p, on_string_byte, '\n');
       POP(p);
       break;
     case 'r':
-      // p->cbs->on_string_byte(p, '\r');
       EMIT(p, on_string_byte, '\r');
       POP(p);
       break;
     case 't':
-      // p->cbs->on_string_byte(p, '\t');
       EMIT(p, on_string_byte, '\t');
       POP(p);
       break;
     case 'v':
-      // p->cbs->on_string_byte(p, '\v');
       EMIT(p, on_string_byte, '\v');
       POP(p);
       break;
     case 'f':
-      // p->cbs->on_string_byte(p, '\f');
       EMIT(p, on_string_byte, '\f');
       POP(p);
       break;
     case 'b':
-      // p->cbs->on_string_byte(p, '\b');
       EMIT(p, on_string_byte, '\b');
       POP(p);
       break;
@@ -682,7 +645,6 @@ retry:
       // ignore
       break;
     case ']':
-      // p->cbs->on_array_end(p);
       FIRE(p, on_array_end);
       POP(p);
       break;
@@ -691,10 +653,8 @@ retry:
     default:
       PUSH(p, STATE_ARRAY_ELEMENT);
       PUSH(p, STATE_VALUE);
-      // p->cbs->on_array_element_start(p);
       FIRE(p, on_array_element_start);
-
-      break;
+      goto retry;
     }
 
     break;
@@ -705,24 +665,20 @@ retry:
       break;
     case ']':
       // end element
-      // p->cbs->on_array_element_end(p);
       FIRE(p, on_array_element_end);
       POP(p);
 
       // end array
-      // p->cbs->on_array_end(p);
       FIRE(p, on_array_end);
       POP(p);
 
       break;
     case ',':
       // end element
-      // p->cbs->on_array_element_end(p);
       FIRE(p, on_array_element_end);
 
       // start element
       PUSH(p, STATE_VALUE);
-      // p->cbs->on_array_element_start(p);
       FIRE(p, on_array_element_start);
 
       break;
@@ -855,13 +811,50 @@ jiffy_parser_push(
   return true;
 }
 
+/**
+ * Returns true if the parser is in the middle of a number that can be
+ * flushed.
+ *
+ * Used in jiffy_parser_fini() to handle the case where the input is
+ * a single number value.
+ */
+/* 
+ * static bool
+ * jiffy_parser_has_pending_number_value(
+ *   const jiffy_parser_t * const p
+ * ) {
+ *   switch (GET_STATE(p)) {
+ *   case STATE_NUMBER_AFTER_LEADING_ZERO:
+ *   case STATE_NUMBER_INT:
+ *   case STATE_NUMBER_FRAC:
+ *   case STATE_NUMBER_EXP_NUM:
+ *     return true;
+ *   default:
+ *     return false;
+ *   }
+ * }
+ */ 
+
 bool
 jiffy_parser_fini(
   jiffy_parser_t * const p
 ) {
+  // push a single space; this will flush any pending numbers
+  if (!jiffy_parser_push_byte(p, ' ')) {
+    return false;
+  }
+/* 
+ *   if (p->pos == 1 && jiffy_parser_has_pending_number_value(p)) {
+ *     // flush remaining number
+ *     if (!jiffy_parser_push_byte(p, ' ')) {
+ *       return false;
+ *     }
+ *   }
+ */ 
+
+  // check to see if parsing is done
   if (p->pos || GET_STATE(p) != STATE_DONE) {
     FAIL(p, JIFFY_ERR_NOT_DONE);
-    return false;
   }
 
   // return success
