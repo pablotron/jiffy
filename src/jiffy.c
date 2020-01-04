@@ -235,19 +235,19 @@ jiffy_parser_push_codepoint(
   const uint32_t code
 ) {
   if (code < 0x80) {
-    EMIT(p, on_string_byte, (1 << 7) | code);
+    EMIT(p, on_string_byte, (0x01 << 7) | code);
   } else if (code < 0x0800) {
-    EMIT(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x1f));
-    EMIT(p, on_string_byte, (1 << 7) | (code & 0x3f));
+    EMIT(p, on_string_byte, (0x03 << 6) | ((code >> 6) & 0x1f));
+    EMIT(p, on_string_byte, (0x01 << 7) | (code & 0x3f));
   } else if (code < 0x10000) {
-    EMIT(p, on_string_byte, (0xe << 4) | ((code >> 12) & 0xf));
-    EMIT(p, on_string_byte, (1 << 7) | ((code >> 6) & 0x3f));
-    EMIT(p, on_string_byte, (1 << 7) | (code & 0x3f));
+    EMIT(p, on_string_byte, (0x0e << 4) | ((code >> 12) & 0x0f));
+    EMIT(p, on_string_byte, (0x01 << 7) | ((code >> 6) & 0x3f));
+    EMIT(p, on_string_byte, (0x01 << 7) | (code & 0x3f));
   } else if (code < 0x110000) {
-    EMIT(p, on_string_byte, (0xf << 4) | ((code >> 18) & 0x7));
-    EMIT(p, on_string_byte, (1 << 7) | ((code >> 12) & 0x3f));
-    EMIT(p, on_string_byte, (1 << 7) | ((code >> 6) & 0x3f));
-    EMIT(p, on_string_byte, (1 << 7) | (code & 0x3f));
+    EMIT(p, on_string_byte, (0x0f << 4) | ((code >> 18) & 0x07));
+    EMIT(p, on_string_byte, (0x01 << 7) | ((code >> 12) & 0x3f));
+    EMIT(p, on_string_byte, (0x01 << 7) | ((code >> 6) & 0x3f));
+    EMIT(p, on_string_byte, (0x01 << 7) | (code & 0x3f));
   } else {
     // FIXME: emit something here
   }
@@ -838,7 +838,7 @@ retry:
   return true;
 }
 
-_Bool
+bool
 jiffy_parser_push(
   jiffy_parser_t * const p,
   const void * const ptr,
@@ -855,7 +855,7 @@ jiffy_parser_push(
   return true;
 }
 
-_Bool
+bool
 jiffy_parser_fini(
   jiffy_parser_t * const p
 ) {
