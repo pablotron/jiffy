@@ -138,8 +138,14 @@ jiffy_state_to_s(const uint32_t state) {
   return JIFFY_STATES[(state < STATE_LAST) ? state : STATE_LAST];
 }
 
-#define GET_STATE(p) ((p)->stack.ptr[(p)->pos])
-#define SWAP(p, state) (p)->stack.ptr[(p)->pos] = (state)
+// get the current state
+#define GET_STATE(p) ((p)->stack_ptr[(p)->stack_pos])
+
+// set the current state
+#define SWAP(p, state) (p)->stack_ptr[(p)->stack_pos] = (state)
+
+// invoke on_error callback with error code, set the state to
+// STATE_FAIL, and then return false.
 #define FAIL(p, err) do { \
   if ((p)->cbs && (p)->cbs->on_error) { \
     (p)->cbs->on_error((p), err); \
@@ -160,7 +166,7 @@ jiffy_state_to_s(const uint32_t state) {
   } \
 } while (0)
 
-void
+bool
 jiffy_parser_init(
   jiffy_parser_t * const p,
   const jiffy_parser_cbs_t * const cbs,
@@ -168,13 +174,34 @@ jiffy_parser_init(
   const size_t stack_len,
   void * const user_data
 ) {
+  // verify that the following conditions are true:
+  // * the parser context is non-null
+  // * the stack memory pointer is non-null
+  // * the number of stack memory elements is greater than 1
+  if (!p || !stack_ptr || stack_len < 2) {
+    // return failure
+    return false;
+  }
+
+  // init callbacks
   p->cbs = cbs;
-  p->stack.ptr = stack_ptr;
-  p->stack.len = stack_len;
-  p->pos = 0;
-  p->num_bytes = 0;
+
+  // init stack
+  p->stack_ptr = stack_ptr;
+  p->stack_len = stack_len;
+  p->stack_pos = 0;
+
+  // init state
   SWAP(p, STATE_INIT);
+
+  // clear number of bytes read
+  p->num_bytes = 0;
+
+  // save user data pointer
   p->user_data = user_data;
+
+  // return success
+  return true;
 }
 
 void *
@@ -196,8 +223,8 @@ jiffy_parser_push_state(
   jiffy_parser_t * const p,
   const uint32_t state
 ) {
-  if (p->pos < p->stack.len - 1) {
-    p->stack.ptr[++p->pos] = state;
+  if (p->stack_pos < p->stack_len - 1) {
+    p->stack_ptr[++p->stack_pos] = state;
     return true;
   } else {
     FAIL(p, JIFFY_ERR_STACK_OVERFLOW);
@@ -209,16 +236,16 @@ jiffy_parser_pop_state(
   jiffy_parser_t * const p
 ) {
   // check for underflow
-  if (!p->pos) {
+  if (!p->stack_pos) {
     // got underflow, return error
     FAIL(p, JIFFY_ERR_STACK_UNDERFLOW);
   }
 
   // decriment position
-  p->pos--;
+  p->stack_pos--;
 
   // check for done
-  if (!p->pos && GET_STATE(p) == STATE_INIT) {
+  if (!p->stack_pos && GET_STATE(p) == STATE_INIT) {
     SWAP(p, STATE_DONE);
   }
 
@@ -821,7 +848,7 @@ jiffy_parser_fini(
   }
 
   // check to see if parsing is done
-  if (p->pos || GET_STATE(p) != STATE_DONE) {
+  if (p->stack_pos || GET_STATE(p) != STATE_DONE) {
     FAIL(p, JIFFY_ERR_NOT_DONE);
   }
 
@@ -839,15 +866,25 @@ jiffy_parse(
   void * const user_data
 ) {
   jiffy_parser_t p;
-  jiffy_parser_init(&p, cbs, stack_ptr, stack_len, user_data);
 
+  // init parser, check for error
+  if (!jiffy_parser_init(&p, cbs, stack_ptr, stack_len, user_data)) {
+    // return failure
+    return false;
+  }
+
+  // write data, check for error
   if (!jiffy_parser_push(&p, buf, len)) {
+    // return failure
     return false;
   }
 
+  // finalize parser, check for error
   if (!jiffy_parser_fini(&p)) {
+    // return failure
     return false;
   }
 
+  // return success
   return true;
 }

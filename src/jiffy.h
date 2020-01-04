@@ -94,29 +94,68 @@ typedef void (*jiffy_parser_byte_cb_t)(
  * Note: Any or all of these callback pointers may be NULL.
  */
 typedef struct {
-  const jiffy_parser_cb_t on_null,
-                          on_true,
-                          on_false,
-                          on_array_start,
-                          on_array_end,
-                          on_array_element_start,
-                          on_array_element_end,
-                          on_object_start,
-                          on_object_end,
-                          on_object_key_start,
-                          on_object_key_end,
-                          on_object_value_start,
-                          on_object_value_end,
-                          on_string_start,
-                          on_string_end,
-                          on_number_start,
-                          on_number_end;
+  // literal null value.
+  const jiffy_parser_cb_t on_null;
 
-  const jiffy_parser_byte_cb_t on_string_byte,
-                               on_number_byte;
+  // literal true value.
+  const jiffy_parser_cb_t on_true;
+
+  // literal false value.
+  const jiffy_parser_cb_t on_false;
+
+  // start of an array.
+  const jiffy_parser_cb_t on_array_start;
+
+  // end of an array.
+  const jiffy_parser_cb_t on_array_end;
+
+  // start of array element.
+  const jiffy_parser_cb_t on_array_element_start;
+
+  // end of array element.
+  const jiffy_parser_cb_t on_array_element_end;
+
+  // start of an object.
+  const jiffy_parser_cb_t on_object_start;
+
+  // end of an object.
+  const jiffy_parser_cb_t on_object_end;
+
+  // start of a key in an object.
+  const jiffy_parser_cb_t on_object_key_start;
+
+  // end of a key in an object.
+  const jiffy_parser_cb_t on_object_key_end;
+
+  // start of a value in an object.
+  const jiffy_parser_cb_t on_object_value_start;
+
+  // end of a value in an object.
+  const jiffy_parser_cb_t on_object_value_end;
+
+  // start of a string value.
+  const jiffy_parser_cb_t on_string_start;
+
+  // single byte of string value.
+  const jiffy_parser_byte_cb_t on_string_byte;
+
+  // end of a string value.
+  const jiffy_parser_cb_t on_string_end;
+
+  // start of a number value.
+  const jiffy_parser_cb_t on_number_start;
+
+  // single byte of number value.
+  const jiffy_parser_byte_cb_t on_number_byte;
+
+  // end of a number value.
+  const jiffy_parser_cb_t on_number_end;
 
   void (*on_error)(
+    // pointer to parser context.
     const jiffy_parser_t *,
+
+    // error code
     const jiffy_err_t
   );
 } jiffy_parser_cbs_t;
@@ -124,38 +163,48 @@ typedef struct {
 /**
  * Parser context.
  *
- * Note: you should not access the fields of this structure directly.
+ * Note: You should not access the fields of this structure directly.
  * Use the jiffy_parser_get_*() functions instead.
  */
 struct jiffy_parser_t_ {
-  // pointer to parser callback structure
+  // pointer to parser callback structure. Provided by user via a
+  // jiffy_parser_init() parameter.
   const jiffy_parser_cbs_t *cbs;
 
-  struct {
-    // pointer to user-provided stack memory.
-    uint32_t *ptr;
+  // pointer to memory for state stack.  Provided by user via a
+  // jiffy_parser_init() parameter.
+  uint32_t *stack_ptr;
 
-    // number of entries in stack memory.
-    size_t len;
-  } stack;
+  // number of entries in stack memory.  Provided by user via a
+  // jiffy_parser_init() parameter.
+  size_t stack_len;
 
   // stack position
-  size_t pos;
+  size_t stack_pos;
 
-  // number of bytes parsed so far.
+  // number of bytes parsed so far.  Accessible via the
+  // jiffy_parser_et_num_bytes() function.
   size_t num_bytes;
 
   // parsed hex value.  used to decode unicode escape sequences.
   uint8_t hex;
 
-  // opaque pointer to user data
+  // opaque pointer to user data.  Provided by user via a
+  // jiffy_parser_init() parameter.  Accessible via the
+  // jiffy_parser_get_user_data() function.
   void *user_data;
 };
 
 /**
  * Initialize a parser.
+ *
+ * Returns false if any of the following errors occur:
+ *
+ * - the parser context is NULL
+ * - the stack memory pointer is NULL
+ * - the number of stack memory elements is less than 2
  */
-void
+_Bool
 jiffy_parser_init(
   // pointer to parser context (required)
   jiffy_parser_t * const,
