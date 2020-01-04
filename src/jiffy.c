@@ -1,31 +1,6 @@
 #include <stdbool.h> // bool
 #include "jiffy.h"
 
-/* 
- * #define JIFFY_ERROR_LIST \
- *   E(OK, "ok"), \
- *   E(BAD_BYTE, "bad byte"), \
- *   E(BAD_STATE, "bad state"), \
- *   E(BAD_ESCAPE, "bad escape"), \
- *   E(BAD_UNICODE_ESCAPE, "bad unicode escape"), \
- *   E(STACK_UNDERFLOW, "stack underflow"), \
- *   E(STACK_OVERFLOW, "stack overflow"), \
- *   E(EXPECTED_ARRAY_ELEMENT, "expected array element"), \
- *   E(EXPECTED_COMMA_OR_ARRAY_END, "expected comma or array end"), \
- *   E(EXPECTED_STRING_OR_OBJECT_END, "expected string or object end"), \
- *   E(EXPECTED_COMMA_OR_OBJECT_END, "expected comma or object end"), \
- *   E(EXPECTED_OBJECT_KEY, "expected object key"), \
- *   E(EXPECTED_COLON, "expected colon"), \
- *   E(NOT_DONE, "not done"), \
- *   E(LAST, "unknown error"),
- * 
- * typedef enum {
- * #define E(a, b) JIFFY_ERR_##a
- * JIFFY_ERROR_LIST
- * #undef E
- * } jiffy_err_t;
- * 
- */ 
 static const char *
 JIFFY_ERRORS[] = {
 #define E(a, b) b
@@ -38,55 +13,6 @@ jiffy_err_to_s(const jiffy_err_t err) {
   const size_t ofs = err < JIFFY_ERR_LAST ? err : JIFFY_ERR_LAST;
   return JIFFY_ERRORS[ofs];
 }
-
-/* 
- * typedef struct jiffy_parser_t_ jiffy_parser_t;
- * 
- * typedef void (*jiffy_event_cb_t)(const jiffy_parser_t *);
- * typedef void (*jiffy_byte_cb_t)(const jiffy_parser_t *, const uint8_t);
- * 
- * typedef struct {
- *   const jiffy_event_cb_t on_null,
- *                          on_true,
- *                          on_false,
- *                          on_array_start,
- *                          on_array_end,
- *                          on_array_element_start,
- *                          on_array_element_end,
- *                          on_object_start,
- *                          on_object_end,
- *                          on_object_key_start,
- *                          on_object_key_end,
- *                          on_object_value_start,
- *                          on_object_value_end,
- *                          on_string_start,
- *                          on_string_end,
- *                          on_number_start,
- *                          on_number_end;
- * 
- *   const jiffy_byte_cb_t on_string_byte,
- *                         on_number_byte;
- * 
- *   void (*on_error)(
- *     const jiffy_parser_t *,
- *     const jiffy_err_t
- *   );
- * } jiffy_parser_cbs_t;
- * 
- * typedef struct {
- *   uint32_t *ptr;
- *   size_t len;
- * } jiffy_stack_t;
- * 
- * struct jiffy_parser_t_ {
- *   const jiffy_parser_cbs_t *cbs;
- *   jiffy_stack_t stack;
- *   size_t pos, num_bytes;
- *   uint8_t hex;
- *   
- *   void *user_data;
- * };
- */ 
 
 typedef enum {
   STATE_INIT,
@@ -291,9 +217,23 @@ jiffy_parser_push_codepoint(
   jiffy_parser_t * const p,
   const uint32_t code
 ) {
-  // TODO: emit code as utf-8
-  (void) p;
-  (void) code;
+  if (code < 0x40) {
+    FIRE_BYTE(p, on_string_byte, (1 << 7) | code);
+  } else if (code < 0x1000) {
+    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
+    FIRE_BYTE(p, on_string_byte, (1 << 7) | (code & 0x3f));
+  } else if (code < 0x40000) {
+    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 12) & 0x3f));
+    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
+    FIRE_BYTE(p, on_string_byte, (1 << 7) | (code & 0x3f));
+  } else if (code < 0x1000000) {
+    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 18) & 0x3f));
+    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 12) & 0x3f));
+    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
+    FIRE_BYTE(p, on_string_byte, (1 << 7) | (code & 0x3f));
+  } else {
+    // FIXME: emit something here
+  }
 }
 
 static bool
