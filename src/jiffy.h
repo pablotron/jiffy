@@ -9,21 +9,22 @@ extern "C" {
 #include <stddef.h> // size_t
 
 #define JIFFY_ERROR_LIST \
-  E(OK, "ok"), \
-  E(BAD_BYTE, "bad byte"), \
-  E(BAD_STATE, "bad state"), \
-  E(BAD_ESCAPE, "bad escape"), \
-  E(BAD_UNICODE_ESCAPE, "bad unicode escape"), \
-  E(STACK_UNDERFLOW, "stack underflow"), \
-  E(STACK_OVERFLOW, "stack overflow"), \
-  E(EXPECTED_ARRAY_ELEMENT, "expected array element"), \
-  E(EXPECTED_COMMA_OR_ARRAY_END, "expected comma or array end"), \
-  E(EXPECTED_STRING_OR_OBJECT_END, "expected string or object end"), \
-  E(EXPECTED_COMMA_OR_OBJECT_END, "expected comma or object end"), \
-  E(EXPECTED_OBJECT_KEY, "expected object key"), \
-  E(EXPECTED_COLON, "expected colon"), \
-  E(NOT_DONE, "not done"), \
-  E(LAST, "unknown error"),
+  JIFFY_ERR(OK, "ok"), \
+  JIFFY_ERR(BAD_BYTE, "bad byte"), \
+  JIFFY_ERR(BAD_STATE, "bad state"), \
+  JIFFY_ERR(BAD_ESCAPE, "bad escape"), \
+  JIFFY_ERR(BAD_UNICODE_ESCAPE, "bad unicode escape"), \
+  JIFFY_ERR(BAD_UNICODE_CODEPOINT, "bad unicode code point"), \
+  JIFFY_ERR(STACK_UNDERFLOW, "stack underflow"), \
+  JIFFY_ERR(STACK_OVERFLOW, "stack overflow"), \
+  JIFFY_ERR(EXPECTED_ARRAY_ELEMENT, "expected array element"), \
+  JIFFY_ERR(EXPECTED_COMMA_OR_ARRAY_END, "expected comma or array end"), \
+  JIFFY_ERR(EXPECTED_STRING_OR_OBJECT_END, "expected string or object end"), \
+  JIFFY_ERR(EXPECTED_COMMA_OR_OBJECT_END, "expected comma or object end"), \
+  JIFFY_ERR(EXPECTED_OBJECT_KEY, "expected object key"), \
+  JIFFY_ERR(EXPECTED_COLON, "expected colon"), \
+  JIFFY_ERR(NOT_DONE, "not done"), \
+  JIFFY_ERR(LAST, "unknown error"),
 
 /**
  * Error codes.  These are passed to the on_error callback when the
@@ -33,9 +34,9 @@ extern "C" {
  * code.
  */
 typedef enum {
-#define E(a, b) JIFFY_ERR_##a
+#define JIFFY_ERR(a, b) JIFFY_ERR_##a
 JIFFY_ERROR_LIST
-#undef E
+#undef JIFFY_ERR
 } jiffy_err_t;
 
 /**
@@ -49,15 +50,24 @@ const char *jiffy_err_to_s(
 );
 
 /**
+ * Parser state.
+ *
+ * Note: In memory-constraint environments you can switch this from a
+ * uint32_t to a uint8_t to save on space.  You may pay a speed penalty
+ * on architectures which do not allow unaligned access (e.g., ARM).
+ */
+typedef uint32_t jiffy_parser_state_t;
+
+/**
  * Convert a internal parser state to human-readable text.
  *
  * This method is mainly used for debugging.
  *
  * Note: The string returned by this method is read-only.
  */
-const char *jiffy_state_to_s(
+const char *jiffy_parser_state_to_s(
   // parser state
-  const uint32_t
+  const jiffy_parser_state_t
 );
 
 // forward declaration
@@ -173,7 +183,7 @@ struct jiffy_parser_t_ {
 
   // pointer to memory for state stack.  Provided by user via a
   // jiffy_parser_init() parameter.
-  uint32_t *stack_ptr;
+  jiffy_parser_state_t *stack_ptr;
 
   // number of entries in stack memory.  Provided by user via a
   // jiffy_parser_init() parameter.
@@ -213,7 +223,7 @@ jiffy_parser_init(
   const jiffy_parser_cbs_t * const,
 
   // memory for state stack (required)
-  uint32_t * const,
+  jiffy_parser_state_t * const,
 
   // number of entries in state stack (required, must be non-zero)
   const size_t,
@@ -287,7 +297,7 @@ jiffy_parse(
   const jiffy_parser_cbs_t * const,
 
   // memory for state stack (required)
-  uint32_t * const,
+  jiffy_parser_state_t * const,
 
   // number of entries in state stack (required, must be non-zero)
   const size_t,

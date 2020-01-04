@@ -1,6 +1,7 @@
 #include <stdbool.h> // bool
 #include "jiffy.h"
 
+// whitespace characters (/[ \t\v\r\n]/)
 #define CASE_WHITESPACE \
   case ' ': \
   case '\t': \
@@ -8,6 +9,7 @@
   case '\n': \
   case '\r':
 
+// non-zero number characters (/[1-9]/)
 #define CASE_NONZERO_NUMBER \
   case '1': \
   case '2': \
@@ -19,6 +21,7 @@
   case '8': \
   case '9':
 
+// number characters (/[0-9]/)
 #define CASE_NUMBER \
   case '0': \
   case '1': \
@@ -31,6 +34,7 @@
   case '8': \
   case '9':
 
+// lowercase alpha hex digits (/[a-f]/)
 #define CASE_HEX_AF_LO \
   case 'a': \
   case 'b': \
@@ -39,6 +43,7 @@
   case 'e': \
   case 'f':
 
+// uppercase alpha hex digits (/[A-F]/)
 #define CASE_HEX_AF_HI \
   case 'A': \
   case 'B': \
@@ -47,11 +52,15 @@
   case 'E': \
   case 'F':
 
+// hex digits (/[0-9a-fA-F]/)
 #define CASE_HEX \
   CASE_NUMBER \
   CASE_HEX_AF_LO \
   CASE_HEX_AF_HI
 
+/**
+ * Decode a hex nibble and return it's value.
+ */
 static inline uint8_t
 nibble(
   const uint8_t byte
@@ -69,73 +78,90 @@ nibble(
   }
 }
 
+/**
+ * Error strings.  Used by jiffy_err_to_s().
+ */
 static const char *
 JIFFY_ERRORS[] = {
-#define E(a, b) b
+#define JIFFY_ERR(a, b) b
 JIFFY_ERROR_LIST
-#undef E
+#undef JIFFY_ERR
 };
 
 const char *
-jiffy_err_to_s(const jiffy_err_t err) {
+jiffy_err_to_s(
+  const jiffy_err_t err
+) {
   const size_t ofs = err < JIFFY_ERR_LAST ? err : JIFFY_ERR_LAST;
   return JIFFY_ERRORS[ofs];
 }
 
+/**
+ * Parser states.
+ */
 #define JIFFY_STATE_LIST \
-  S(INIT), \
-  S(DONE), \
-  S(FAIL), \
-  S(VALUE), \
-  S(LIT_N), \
-  S(LIT_NU), \
-  S(LIT_NUL), \
-  S(LIT_T), \
-  S(LIT_TR), \
-  S(LIT_TRU), \
-  S(LIT_F), \
-  S(LIT_FA), \
-  S(LIT_FAL), \
-  S(LIT_FALS), \
-  S(NUMBER_AFTER_SIGN), \
-  S(NUMBER_AFTER_LEADING_ZERO), \
-  S(NUMBER_INT), \
-  S(NUMBER_AFTER_DOT), \
-  S(NUMBER_FRAC), \
-  S(NUMBER_AFTER_EXP), \
-  S(NUMBER_AFTER_EXP_SIGN), \
-  S(NUMBER_EXP_NUM), \
-  S(STRING), \
-  S(STRING_ESC), \
-  S(STRING_UNICODE), \
-  S(STRING_UNICODE_X), \
-  S(STRING_UNICODE_XX), \
-  S(STRING_UNICODE_XXX), \
-  S(OBJECT_START), \
-  S(ARRAY_START), \
-  S(ARRAY_ELEMENT), \
-  S(OBJECT_KEY), \
-  S(AFTER_OBJECT_KEY), \
-  S(BEFORE_OBJECT_KEY), \
-  S(AFTER_OBJECT_VALUE), \
-  S(LAST),
+  JIFFY_STATE(INIT), \
+  JIFFY_STATE(DONE), \
+  JIFFY_STATE(FAIL), \
+  JIFFY_STATE(VALUE), \
+  JIFFY_STATE(LIT_N), \
+  JIFFY_STATE(LIT_NU), \
+  JIFFY_STATE(LIT_NUL), \
+  JIFFY_STATE(LIT_T), \
+  JIFFY_STATE(LIT_TR), \
+  JIFFY_STATE(LIT_TRU), \
+  JIFFY_STATE(LIT_F), \
+  JIFFY_STATE(LIT_FA), \
+  JIFFY_STATE(LIT_FAL), \
+  JIFFY_STATE(LIT_FALS), \
+  JIFFY_STATE(NUMBER_AFTER_SIGN), \
+  JIFFY_STATE(NUMBER_AFTER_LEADING_ZERO), \
+  JIFFY_STATE(NUMBER_INT), \
+  JIFFY_STATE(NUMBER_AFTER_DOT), \
+  JIFFY_STATE(NUMBER_FRAC), \
+  JIFFY_STATE(NUMBER_AFTER_EXP), \
+  JIFFY_STATE(NUMBER_AFTER_EXP_SIGN), \
+  JIFFY_STATE(NUMBER_EXP_NUM), \
+  JIFFY_STATE(STRING), \
+  JIFFY_STATE(STRING_ESC), \
+  JIFFY_STATE(STRING_UNICODE), \
+  JIFFY_STATE(STRING_UNICODE_X), \
+  JIFFY_STATE(STRING_UNICODE_XX), \
+  JIFFY_STATE(STRING_UNICODE_XXX), \
+  JIFFY_STATE(OBJECT_START), \
+  JIFFY_STATE(ARRAY_START), \
+  JIFFY_STATE(ARRAY_ELEMENT), \
+  JIFFY_STATE(OBJECT_KEY), \
+  JIFFY_STATE(AFTER_OBJECT_KEY), \
+  JIFFY_STATE(BEFORE_OBJECT_KEY), \
+  JIFFY_STATE(AFTER_OBJECT_VALUE), \
+  JIFFY_STATE(LAST),
 
-typedef enum {
-#define S(a) STATE_##a
+/**
+ * Parser states.
+ */
+enum jiffy_parser_states {
+#define JIFFY_STATE(a) STATE_##a
 JIFFY_STATE_LIST
-#undef S
-} jiffy_parser_state_t;
+#undef JIFFY_STATE
+};
 
+/**
+ * Parser state strings.  Used by jiffy_parser_state_to_s().
+ */
 static const char *
 JIFFY_STATES[] = {
-#define S(a) "STATE_" # a
+#define JIFFY_STATE(a) "STATE_" # a
 JIFFY_STATE_LIST
-#undef S
+#undef JIFFY_STATE
 };
 
 const char *
-jiffy_state_to_s(const uint32_t state) {
-  return JIFFY_STATES[(state < STATE_LAST) ? state : STATE_LAST];
+jiffy_parser_state_to_s(
+  const jiffy_parser_state_t state
+) {
+  const size_t ofs = (state < STATE_LAST) ? state : STATE_LAST;
+  return JIFFY_STATES[ofs];
 }
 
 // get the current state
@@ -154,12 +180,14 @@ jiffy_state_to_s(const uint32_t state) {
   return false; \
 } while (0)
 
+// call given callback, if it is non-NULL
 #define FIRE(p, cb_name) do { \
   if ((p)->cbs && (p)->cbs->cb_name) { \
     (p)->cbs->cb_name(p); \
   } \
 } while (0)
 
+// call given callback with byte value, if it is non-NULL
 #define EMIT(p, cb_name, byte) do { \
   if ((p)->cbs && (p)->cbs->cb_name) { \
     (p)->cbs->cb_name(p, (byte)); \
@@ -170,7 +198,7 @@ bool
 jiffy_parser_init(
   jiffy_parser_t * const p,
   const jiffy_parser_cbs_t * const cbs,
-  uint32_t * const stack_ptr,
+  jiffy_parser_state_t * const stack_ptr,
   const size_t stack_len,
   void * const user_data
 ) {
@@ -218,10 +246,16 @@ jiffy_parser_get_num_bytes(
   return p->num_bytes;
 }
 
+/**
+ * Push parser state.  Returns false on stack overflow.
+ *
+ * Note: this is defined as an inline function rather than a macro to
+ * give the compiler more flexibility in terms of inlining.
+ */
 static inline bool
 jiffy_parser_push_state(
   jiffy_parser_t * const p,
-  const uint32_t state
+  const jiffy_parser_state_t state
 ) {
   if (p->stack_pos < p->stack_len - 1) {
     p->stack_ptr[++p->stack_pos] = state;
@@ -231,6 +265,12 @@ jiffy_parser_push_state(
   }
 }
 
+/**
+ * Pop parser state.  Returns false on stack underflow.
+ *
+ * Note: this is defined as an inline function rather than a macro to
+ * give the compiler more flexibility in terms of inlining.
+ */
 static inline bool
 jiffy_parser_pop_state(
   jiffy_parser_t * const p
@@ -253,39 +293,53 @@ jiffy_parser_pop_state(
   return true;
 }
 
+// push parser state and return false if an error occurred.
 #define PUSH(p, state) do { \
   if (!jiffy_parser_push_state((p), (state))) { \
     return false; \
   } \
 } while (0)
 
+// pop parser state and return false if an error occurred.
 #define POP(p) do { \
   if (!jiffy_parser_pop_state(p)) { \
     return false; \
   } \
 } while (0)
 
-static void
-jiffy_parser_push_codepoint(
+/**
+ * Emit given unicode code point as UTF-8.  Returns false if the given
+ * code point is outside of the valid range of Unicode code points
+ * (e.g., (0, 0x110000), exclusive).
+ */
+static bool
+jiffy_parser_emit_utf8(
   jiffy_parser_t * const p,
   const uint32_t code
 ) {
-  if (code < 0x80) {
+  if (!code) {
+    return false;
+  } else if (code < 0x80) {
     EMIT(p, on_string_byte, code);
+    return true;
   } else if (code < 0x0800) {
     EMIT(p, on_string_byte, (0x03 << 6) | ((code >> 6) & 0x1f));
     EMIT(p, on_string_byte, (0x01 << 7) | (code & 0x3f));
+    return true;
   } else if (code < 0x10000) {
     EMIT(p, on_string_byte, (0x0e << 4) | ((code >> 12) & 0x0f));
     EMIT(p, on_string_byte, (0x01 << 7) | ((code >> 6) & 0x3f));
     EMIT(p, on_string_byte, (0x01 << 7) | (code & 0x3f));
+    return true;
   } else if (code < 0x110000) {
     EMIT(p, on_string_byte, (0x0f << 4) | ((code >> 18) & 0x07));
     EMIT(p, on_string_byte, (0x01 << 7) | ((code >> 12) & 0x3f));
     EMIT(p, on_string_byte, (0x01 << 7) | ((code >> 6) & 0x3f));
     EMIT(p, on_string_byte, (0x01 << 7) | (code & 0x3f));
+    return true;
   } else {
-    // FIXME: emit something here
+    // this should never be reached, but just in case
+    return false;
   }
 }
 
@@ -668,7 +722,9 @@ retry:
     switch (byte) {
     CASE_HEX
       p->hex = (p->hex << 4) + nibble(byte);
-      jiffy_parser_push_codepoint(p, p->hex);
+      if (!jiffy_parser_emit_utf8(p, p->hex)) {
+        FAIL(p, JIFFY_ERR_BAD_UNICODE_CODEPOINT);
+      }
       POP(p);
       break;
     default:
@@ -830,11 +886,14 @@ jiffy_parser_push(
   const uint8_t * const buf = ptr;
 
   for (size_t i = 0; i < len; i++) {
+    // parse byte, check for error
     if (!jiffy_parser_push_byte(p, buf[i])) {
+      // return failure
       return false;
     }
   }
 
+  // return success
   return true;
 }
 
@@ -859,7 +918,7 @@ jiffy_parser_fini(
 bool
 jiffy_parse(
   const jiffy_parser_cbs_t * const cbs,
-  uint32_t * const stack_ptr,
+  jiffy_parser_state_t * const stack_ptr,
   const size_t stack_len,
   const void * const buf,
   const size_t len,
