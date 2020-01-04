@@ -36,10 +36,148 @@ static void on_object_end(
   fprintf(stderr, "D: object end\n");
 }
 
+static void on_object_key_start(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: object_key start\n");
+}
+
+static void on_object_key_end(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: object_key end\n");
+}
+
+static void on_object_value_start(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: object_value start\n");
+}
+
+static void on_object_value_end(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: object_value end\n");
+}
+
+static void on_array_start(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: array start\n");
+}
+
+static void on_array_end(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: array end\n");
+}
+
+static void on_array_element_start(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: array_element start\n");
+}
+
+static void on_array_element_end(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: array_element end\n");
+}
+
+static void on_string_start(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: string start\n");
+}
+
+static void on_string_end(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: string end\n");
+}
+
+static void on_string_byte(
+  const jiffy_parser_t * const p,
+  const uint8_t byte
+) {
+  (void) p;
+  fprintf(stderr, "D: string byte = %02x\n", byte);
+}
+
+static void on_number_start(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: number start\n");
+}
+
+static void on_number_end(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: number end\n");
+}
+
+static void on_number_byte(
+  const jiffy_parser_t * const p,
+  const uint8_t byte
+) {
+  (void) p;
+  fprintf(stderr, "D: number byte = %02x\n", byte);
+}
+
+static void on_true(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: true\n");
+}
+
+static void on_false(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: false\n");
+}
+
+static void on_null(
+  const jiffy_parser_t * const p
+) {
+  (void) p;
+  fprintf(stderr, "D: null\n");
+}
+
 static const jiffy_parser_cbs_t CBS = {
-  .on_error         = on_error,
-  .on_object_start  = on_object_start,
-  .on_object_end    = on_object_end,
+  .on_error               = on_error,
+  .on_object_start        = on_object_start,
+  .on_object_end          = on_object_end,
+  .on_object_key_start    = on_object_key_start,
+  .on_object_key_end      = on_object_key_end,
+  .on_object_value_start  = on_object_value_start,
+  .on_object_value_end    = on_object_value_end,
+  .on_array_start         = on_array_start,
+  .on_array_end           = on_array_end,
+  .on_array_element_start = on_array_element_start,
+  .on_array_element_end   = on_array_element_end,
+  .on_string_start        = on_string_start,
+  .on_string_end          = on_string_end,
+  .on_string_byte         = on_string_byte,
+  .on_number_start        = on_number_start,
+  .on_number_end          = on_number_end,
+  .on_number_byte         = on_number_byte,
+  .on_true                = on_true,
+  .on_false               = on_false,
+  .on_null                = on_null,
 };
 
 static uint32_t stack_mem[128];
