@@ -45,20 +45,32 @@ static const jiffy_parser_cbs_t CBS = {
 static uint32_t stack_mem[128];
 
 int main(int argc, char *argv[]) {
+  (void) argc;
+  (void) argv;
+
   jiffy_stack_t stack = {
     .ptr = stack_mem,
     .len = sizeof(stack_mem) / sizeof(uint32_t),
   };
 
-  for (int i = 1; i < argc; i++) {
+  char buf[1024];
+  while (fgets(buf, sizeof(buf), stdin)) {
+    const size_t len = strlen(buf);
+    if (len < 1) {
+      continue;
+    }
+
+    // strip newline
+    buf[len - 1] = '\0';
+
     // init parser
     jiffy_parser_t parser;
     jiffy_parser_init(&parser, &CBS, &stack, NULL);
 
-    fprintf(stderr, "D: parsing \"%s\"\n", argv[i]);
+    fprintf(stderr, "D: parsing \"%s\"\n", buf);
 
     // parse argument
-    if (!jiffy_parser_push(&parser, argv[i], strlen(argv[i]))) {
+    if (!jiffy_parser_push(&parser, buf, len - 1)) {
       dump_parser(&parser);
       exit(EXIT_FAILURE);
     }

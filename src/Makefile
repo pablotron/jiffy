@@ -13,7 +13,7 @@ $(APP): $(OBJS)
 	$(CC) -c $(CFLAGS) $<
 
 test: $(APP)
-	./$(APP) "{}" '5' '{"foo":true,"bar":false,"baz":[null]}'
+	./$(APP) < ./tests.txt
 
 clean:
 	$(RM) $(OBJS) $(APP)
