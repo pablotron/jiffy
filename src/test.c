@@ -205,7 +205,7 @@ int main(int argc, char *argv[]) {
     jiffy_parser_t parser;
     jiffy_parser_init(&parser, &CBS, &stack, NULL);
 
-    fprintf(stderr, "D: parsing \"%s\"\n", buf);
+    fprintf(stderr, "D: parsing: %s\n", buf);
 
     // parse argument
     if (!jiffy_parser_push(&parser, buf, len - 1)) {

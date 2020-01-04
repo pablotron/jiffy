@@ -10,3 +10,4 @@ null
 {"foo":true,"bar":false,"baz":[null]}
 [null,null,null]
 [1e1]
+"\u0020"

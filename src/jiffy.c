@@ -60,9 +60,9 @@ nibble(
   CASE_NUMBER
     return byte - '0';
   CASE_HEX_AF_LO
-    return 10 + byte - 'a';
+    return byte - 'a' + 10;
   CASE_HEX_AF_HI
-    return 10 + byte - 'A';
+    return byte - 'A' + 10;
   default:
     // FIXME
     return 0;
@@ -235,7 +235,7 @@ jiffy_parser_push_codepoint(
   const uint32_t code
 ) {
   if (code < 0x80) {
-    EMIT(p, on_string_byte, (0x01 << 7) | code);
+    EMIT(p, on_string_byte, code);
   } else if (code < 0x0800) {
     EMIT(p, on_string_byte, (0x03 << 6) | ((code >> 6) & 0x1f));
     EMIT(p, on_string_byte, (0x01 << 7) | (code & 0x3f));
@@ -631,6 +631,7 @@ retry:
   case STATE_STRING_UNICODE_XXX:
     switch (byte) {
     CASE_HEX
+      p->hex = (p->hex << 4) + nibble(byte);
       jiffy_parser_push_codepoint(p, p->hex);
       POP(p);
       break;
@@ -694,7 +695,6 @@ retry:
       break;
     case '}':
       // end object
-      // p->cbs->on_object_end(p);
       FIRE(p, on_object_end);
       POP(p);
 
@@ -702,8 +702,6 @@ retry:
     case '"':
       PUSH(p, STATE_OBJECT_KEY);
       PUSH(p, STATE_STRING);
-      // p->cbs->on_object_key_start(p);
-      // p->cbs->on_string_start(p);
       FIRE(p, on_object_key_start);
       FIRE(p, on_string_start);
 
@@ -719,7 +717,6 @@ retry:
       // ignore
       break;
     case ':':
-      // p->cbs->on_object_key_end(p);
       FIRE(p, on_object_key_end);
       SWAP(p, STATE_AFTER_OBJECT_KEY);
       break;
@@ -736,7 +733,6 @@ retry:
     default:
       SWAP(p, STATE_AFTER_OBJECT_VALUE);
       PUSH(p, STATE_VALUE);
-      // p->cbs->on_object_value_start(p);
       FIRE(p, on_object_value_start);
       goto retry;
     }
@@ -748,15 +744,12 @@ retry:
       // ignore
       break;
     case ',':
-      // p->cbs->on_object_value_end(p);
       FIRE(p, on_object_value_end);
       SWAP(p, STATE_BEFORE_OBJECT_KEY);
       break;
     case '}':
-      // p->cbs->on_object_value_end(p);
       FIRE(p, on_object_value_end);
       POP(p);
-      // p->cbs->on_object_end(p);
       FIRE(p, on_object_end);
       POP(p);
       break;
@@ -773,8 +766,6 @@ retry:
     case '"':
       SWAP(p, STATE_OBJECT_KEY);
       PUSH(p, STATE_STRING);
-      // p->cbs->on_object_key_start(p);
-      // p->cbs->on_string_start(p);
       FIRE(p, on_object_key_start);
       FIRE(p, on_string_start);
       break;
