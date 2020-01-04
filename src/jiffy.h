@@ -33,6 +33,8 @@ JIFFY_ERROR_LIST
 
 const char *jiffy_err_to_s(const jiffy_err_t);
 
+const char *jiffy_state_to_s(const uint32_t);
+
 typedef struct jiffy_parser_t_ jiffy_parser_t;
 
 typedef void (*jiffy_event_cb_t)(const jiffy_parser_t *);

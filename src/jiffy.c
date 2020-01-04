@@ -14,44 +14,61 @@ jiffy_err_to_s(const jiffy_err_t err) {
   return JIFFY_ERRORS[ofs];
 }
 
+#define JIFFY_STATE_LIST \
+  S(INIT), \
+  S(DONE), \
+  S(FAIL), \
+  S(VALUE), \
+  S(LIT_N), \
+  S(LIT_NU), \
+  S(LIT_NUL), \
+  S(LIT_T), \
+  S(LIT_TR), \
+  S(LIT_TRU), \
+  S(LIT_F), \
+  S(LIT_FA), \
+  S(LIT_FAL), \
+  S(LIT_FALS), \
+  S(NUMBER_AFTER_SIGN), \
+  S(NUMBER_AFTER_LEADING_ZERO), \
+  S(NUMBER_INT), \
+  S(NUMBER_AFTER_DOT), \
+  S(NUMBER_FRAC), \
+  S(NUMBER_AFTER_EXP), \
+  S(NUMBER_AFTER_EXP_SIGN), \
+  S(NUMBER_EXP_NUM), \
+  S(STRING), \
+  S(STRING_ESC), \
+  S(STRING_UNICODE), \
+  S(STRING_UNICODE_X), \
+  S(STRING_UNICODE_XX), \
+  S(STRING_UNICODE_XXX), \
+  S(OBJECT_START), \
+  S(ARRAY_START), \
+  S(ARRAY_ELEMENT), \
+  S(OBJECT_KEY), \
+  S(AFTER_OBJECT_KEY), \
+  S(BEFORE_OBJECT_KEY), \
+  S(AFTER_OBJECT_VALUE), \
+  S(LAST),
+
 typedef enum {
-  STATE_INIT,
-  STATE_DONE,
-  STATE_FAIL,
-  STATE_VALUE,
-  STATE_LIT_N,
-  STATE_LIT_NU,
-  STATE_LIT_NUL,
-  STATE_LIT_T,
-  STATE_LIT_TR,
-  STATE_LIT_TRU,
-  STATE_LIT_F,
-  STATE_LIT_FA,
-  STATE_LIT_FAL,
-  STATE_LIT_FALS,
-  STATE_NUMBER_AFTER_SIGN,
-  STATE_NUMBER_AFTER_LEADING_ZERO,
-  STATE_NUMBER_INT,
-  STATE_NUMBER_AFTER_DOT,
-  STATE_NUMBER_FRAC,
-  STATE_NUMBER_AFTER_EXP,
-  STATE_NUMBER_AFTER_EXP_SIGN,
-  STATE_NUMBER_EXP_NUM,
-  STATE_STRING,
-  STATE_STRING_ESC,
-  STATE_STRING_UNICODE,
-  STATE_STRING_UNICODE_X,
-  STATE_STRING_UNICODE_XX,
-  STATE_STRING_UNICODE_XXX,
-  STATE_OBJECT_START,
-  STATE_ARRAY_START,
-  STATE_ARRAY_ELEMENT,
-  STATE_OBJECT_KEY,
-  STATE_AFTER_OBJECT_KEY,
-  STATE_BEFORE_OBJECT_KEY,
-  STATE_AFTER_OBJECT_VALUE,
-  STATE_LAST,
+#define S(a) STATE_##a
+JIFFY_STATE_LIST
+#undef S
 } jiffy_parser_state_t;
+
+static const char *
+JIFFY_STATES[] = {
+#define S(a) "STATE_" # a
+JIFFY_STATE_LIST
+#undef S
+};
+
+const char *
+jiffy_state_to_s(const uint32_t state) {
+  return JIFFY_STATES[(state < STATE_LAST) ? state : STATE_LAST];
+}
 
 #define GET_STATE(p) ((p)->stack.ptr[(p)->pos])
 #define SWAP(p, state) (p)->stack.ptr[(p)->pos] = (state)
@@ -69,7 +86,7 @@ typedef enum {
   } \
 } while (0)
 
-#define FIRE_BYTE(p, cb_name, byte) do { \
+#define EMIT(p, cb_name, byte) do { \
   if ((p)->cbs && (p)->cbs->cb_name) { \
     (p)->cbs->cb_name(p, (byte)); \
   } \
@@ -218,19 +235,19 @@ jiffy_parser_push_codepoint(
   const uint32_t code
 ) {
   if (code < 0x40) {
-    FIRE_BYTE(p, on_string_byte, (1 << 7) | code);
+    EMIT(p, on_string_byte, (1 << 7) | code);
   } else if (code < 0x1000) {
-    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
-    FIRE_BYTE(p, on_string_byte, (1 << 7) | (code & 0x3f));
+    EMIT(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
+    EMIT(p, on_string_byte, (1 << 7) | (code & 0x3f));
   } else if (code < 0x40000) {
-    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 12) & 0x3f));
-    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
-    FIRE_BYTE(p, on_string_byte, (1 << 7) | (code & 0x3f));
+    EMIT(p, on_string_byte, (3 << 6) | ((code >> 12) & 0x3f));
+    EMIT(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
+    EMIT(p, on_string_byte, (1 << 7) | (code & 0x3f));
   } else if (code < 0x1000000) {
-    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 18) & 0x3f));
-    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 12) & 0x3f));
-    FIRE_BYTE(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
-    FIRE_BYTE(p, on_string_byte, (1 << 7) | (code & 0x3f));
+    EMIT(p, on_string_byte, (3 << 6) | ((code >> 18) & 0x3f));
+    EMIT(p, on_string_byte, (3 << 6) | ((code >> 12) & 0x3f));
+    EMIT(p, on_string_byte, (3 << 6) | ((code >> 6) & 0x3f));
+    EMIT(p, on_string_byte, (1 << 7) | (code & 0x3f));
   } else {
     // FIXME: emit something here
   }
@@ -286,17 +303,17 @@ retry:
       // p->cbs->on_number_start(p);
       // p->cbs->on_number_byte(p, byte);
       FIRE(p, on_number_start);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     case '0':
       SWAP(p, STATE_NUMBER_AFTER_LEADING_ZERO);
       FIRE(p, on_number_start);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     CASE_NONZERO_NUMBER
       SWAP(p, STATE_NUMBER_INT);
       FIRE(p, on_number_start);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     case '{':
       SWAP(p, STATE_OBJECT_START);
@@ -409,12 +426,12 @@ retry:
     case '0':
       SWAP(p, STATE_NUMBER_AFTER_LEADING_ZERO);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     CASE_NONZERO_NUMBER
       SWAP(p, STATE_NUMBER_INT);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_BYTE);
@@ -425,11 +442,11 @@ retry:
     if (byte == '.') {
       SWAP(p, STATE_NUMBER_AFTER_DOT);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
     } else if (byte == 'e' || byte == 'E') {
       SWAP(p, STATE_NUMBER_AFTER_EXP);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
     } else {
       // p->cbs->on_number_end(p);
       FIRE(p, on_number_end);
@@ -442,18 +459,18 @@ retry:
     switch (byte) {
     CASE_NUMBER
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     case '.':
       SWAP(p, STATE_NUMBER_AFTER_DOT);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     case 'e':
     case 'E':
       SWAP(p, STATE_NUMBER_AFTER_EXP);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     default:
       // p->cbs->on_number_end(p);
@@ -468,7 +485,7 @@ retry:
     CASE_NUMBER
       SWAP(p, STATE_NUMBER_FRAC);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_BYTE);
@@ -479,13 +496,13 @@ retry:
     switch (byte) {
     CASE_NUMBER
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     case 'e':
     case 'E':
       SWAP(p, STATE_NUMBER_AFTER_EXP);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     default:
       // p->cbs->on_number_end(p);
@@ -501,24 +518,24 @@ retry:
     case '-':
       SWAP(p, STATE_NUMBER_AFTER_EXP_SIGN);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     CASE_NUMBER
       SWAP(p, STATE_NUMBER_EXP_NUM);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     }
-    
+
     break;
   case STATE_NUMBER_AFTER_EXP_SIGN:
     switch (byte) {
     CASE_NUMBER
       SWAP(p, STATE_NUMBER_EXP_NUM);
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_BYTE);
@@ -529,7 +546,7 @@ retry:
     switch (byte) {
     CASE_NUMBER
       // p->cbs->on_number_byte(p, byte);
-      FIRE_BYTE(p, on_number_byte, byte);
+      EMIT(p, on_number_byte, byte);
       break;
     default:
       // p->cbs->on_number_end(p);
@@ -555,7 +572,7 @@ retry:
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     default:
       // p->cbs->on_string_byte(p, byte);
-      FIRE_BYTE(p, on_string_byte, byte);
+      EMIT(p, on_string_byte, byte);
     }
 
     break;
@@ -563,47 +580,47 @@ retry:
     switch (byte) {
     case '\\':
       // p->cbs->on_string_byte(p, '\\');
-      FIRE_BYTE(p, on_string_byte, '\\');
+      EMIT(p, on_string_byte, '\\');
       POP(p);
       break;
     case '/':
       // p->cbs->on_string_byte(p, '/');
-      FIRE_BYTE(p, on_string_byte, '/');
+      EMIT(p, on_string_byte, '/');
       POP(p);
       break;
     case '\"':
       // p->cbs->on_string_byte(p, '\"');
-      FIRE_BYTE(p, on_string_byte, '\"');
+      EMIT(p, on_string_byte, '\"');
       POP(p);
       break;
     case 'n':
       // p->cbs->on_string_byte(p, '\n');
-      FIRE_BYTE(p, on_string_byte, '\n');
+      EMIT(p, on_string_byte, '\n');
       POP(p);
       break;
     case 'r':
       // p->cbs->on_string_byte(p, '\r');
-      FIRE_BYTE(p, on_string_byte, '\r');
+      EMIT(p, on_string_byte, '\r');
       POP(p);
       break;
     case 't':
       // p->cbs->on_string_byte(p, '\t');
-      FIRE_BYTE(p, on_string_byte, '\t');
+      EMIT(p, on_string_byte, '\t');
       POP(p);
       break;
     case 'v':
       // p->cbs->on_string_byte(p, '\v');
-      FIRE_BYTE(p, on_string_byte, '\v');
+      EMIT(p, on_string_byte, '\v');
       POP(p);
       break;
     case 'f':
       // p->cbs->on_string_byte(p, '\f');
-      FIRE_BYTE(p, on_string_byte, '\f');
+      EMIT(p, on_string_byte, '\f');
       POP(p);
       break;
     case 'b':
       // p->cbs->on_string_byte(p, '\b');
-      FIRE_BYTE(p, on_string_byte, '\b');
+      EMIT(p, on_string_byte, '\b');
       POP(p);
       break;
     case 'u':

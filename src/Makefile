@@ -1,12 +1,19 @@
 CFLAGS=-W -Wall -Werror -pedantic -std=c11 -Wimplicit-fallthrough
-OBJS=jiffy.o
+OBJS=jiffy.o test.o
+APP=jiffy-test
 
-.PHONY=all clean
+.PHONY=all clean test
 
-all: $(OBJS)
+all: $(APP)
+
+$(APP): $(OBJS)
+	$(CC) -o $(APP) $(OBJS)
 
 %.o: %.c jiffy.h
 	$(CC) -c $(CFLAGS) $<
 
+test: $(APP)
+	./$(APP) "{}" "5"
+
 clean:
-	$(RM) $(OBJS)
+	$(RM) $(OBJS) $(APP)
