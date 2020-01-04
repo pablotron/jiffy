@@ -37,30 +37,35 @@ const char *jiffy_state_to_s(const uint32_t);
 
 typedef struct jiffy_parser_t_ jiffy_parser_t;
 
-typedef void (*jiffy_event_cb_t)(const jiffy_parser_t *);
-typedef void (*jiffy_byte_cb_t)(const jiffy_parser_t *, const uint8_t);
+typedef void (*jiffy_parser_cb_t)(
+  const jiffy_parser_t *
+);
+
+typedef void (*jiffy_parser_byte_cb_t)(
+  const jiffy_parser_t *, const uint8_t
+);
 
 typedef struct {
-  const jiffy_event_cb_t on_null,
-                         on_true,
-                         on_false,
-                         on_array_start,
-                         on_array_end,
-                         on_array_element_start,
-                         on_array_element_end,
-                         on_object_start,
-                         on_object_end,
-                         on_object_key_start,
-                         on_object_key_end,
-                         on_object_value_start,
-                         on_object_value_end,
-                         on_string_start,
-                         on_string_end,
-                         on_number_start,
-                         on_number_end;
+  const jiffy_parser_cb_t on_null,
+                          on_true,
+                          on_false,
+                          on_array_start,
+                          on_array_end,
+                          on_array_element_start,
+                          on_array_element_end,
+                          on_object_start,
+                          on_object_end,
+                          on_object_key_start,
+                          on_object_key_end,
+                          on_object_value_start,
+                          on_object_value_end,
+                          on_string_start,
+                          on_string_end,
+                          on_number_start,
+                          on_number_end;
 
-  const jiffy_byte_cb_t on_string_byte,
-                        on_number_byte;
+  const jiffy_parser_byte_cb_t on_string_byte,
+                               on_number_byte;
 
   void (*on_error)(
     const jiffy_parser_t *,
@@ -68,14 +73,14 @@ typedef struct {
   );
 } jiffy_parser_cbs_t;
 
-typedef struct {
-  uint32_t *ptr;
-  size_t len;
-} jiffy_stack_t;
-
 struct jiffy_parser_t_ {
   const jiffy_parser_cbs_t *cbs;
-  jiffy_stack_t stack;
+
+  struct {
+    uint32_t *ptr;
+    size_t len;
+  } stack;
+
   size_t pos, num_bytes;
   uint8_t hex;
   
@@ -86,12 +91,18 @@ void
 jiffy_parser_init(
   jiffy_parser_t * const,
   const jiffy_parser_cbs_t * const,
-  jiffy_stack_t * const,
+  uint32_t * const,
+  const size_t,
   void * const
 );
 
 void *
 jiffy_parser_get_user_data(
+  const jiffy_parser_t * const
+);
+
+size_t
+jiffy_parser_get_num_bytes(
   const jiffy_parser_t * const
 );
 
@@ -105,6 +116,16 @@ jiffy_parser_push(
 _Bool
 jiffy_parser_fini(
   jiffy_parser_t * const
+);
+
+_Bool
+jiffy_parse(
+  const jiffy_parser_cbs_t * const,
+  uint32_t * const,
+  const size_t,
+  const void * const,
+  const size_t,
+  void * const
 );
 
 #ifdef __cplusplus

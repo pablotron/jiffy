@@ -11,3 +11,5 @@ null
 [null,null,null]
 [1e1]
 "\u0020"
+"\uffff"
+"\u0000"

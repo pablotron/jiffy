@@ -164,11 +164,13 @@ void
 jiffy_parser_init(
   jiffy_parser_t * const p,
   const jiffy_parser_cbs_t * const cbs,
-  jiffy_stack_t * const stack,
+  uint32_t * const stack_ptr,
+  const size_t stack_len,
   void * const user_data
 ) {
   p->cbs = cbs;
-  p->stack = *stack;
+  p->stack.ptr = stack_ptr;
+  p->stack.len = stack_len;
   p->pos = 0;
   p->num_bytes = 0;
   SWAP(p, STATE_INIT);
@@ -180,6 +182,13 @@ jiffy_parser_get_user_data(
   const jiffy_parser_t * const p
 ) {
   return p->user_data;
+}
+
+size_t
+jiffy_parser_get_num_bytes(
+  const jiffy_parser_t * const p
+) {
+  return p->num_bytes;
 }
 
 static inline bool
@@ -817,5 +826,28 @@ jiffy_parser_fini(
   }
 
   // return success
+  return true;
+}
+
+bool
+jiffy_parse(
+  const jiffy_parser_cbs_t * const cbs,
+  uint32_t * const stack_ptr,
+  const size_t stack_len,
+  const void * const buf,
+  const size_t len,
+  void * const user_data
+) {
+  jiffy_parser_t p;
+  jiffy_parser_init(&p, cbs, stack_ptr, stack_len, user_data);
+
+  if (!jiffy_parser_push(&p, buf, len)) {
+    return false;
+  }
+
+  if (!jiffy_parser_fini(&p)) {
+    return false;
+  }
+
   return true;
 }

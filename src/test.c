@@ -3,16 +3,18 @@
 #include <stdlib.h> // EXIT_*
 #include "jiffy.h"
 
-static void
-dump_parser(
-  const jiffy_parser_t * const p
-) {
-  fprintf(stderr, "D: state (%zu):", p->pos);
-  for (size_t i = 0; i <= p->pos; i++) {
-    fprintf(stderr, " %s", jiffy_state_to_s(p->stack.ptr[i]));
-  }
-  fputs("\n", stderr);
-}
+/* 
+ * static void
+ * dump_parser(
+ *   const jiffy_parser_t * const p
+ * ) {
+ *   fprintf(stderr, "D: state (%zu):", p->pos);
+ *   for (size_t i = 0; i <= p->pos; i++) {
+ *     fprintf(stderr, " %s", jiffy_state_to_s(p->stack.ptr[i]));
+ *   }
+ *   fputs("\n", stderr);
+ * }
+ */ 
 
 static void on_error(
   const jiffy_parser_t * const p,
@@ -180,16 +182,12 @@ static const jiffy_parser_cbs_t CBS = {
   .on_null                = on_null,
 };
 
-static uint32_t stack_mem[128];
+#define STACK_LEN 128
+static uint32_t stack_mem[STACK_LEN];
 
 int main(int argc, char *argv[]) {
   (void) argc;
   (void) argv;
-
-  jiffy_stack_t stack = {
-    .ptr = stack_mem,
-    .len = sizeof(stack_mem) / sizeof(uint32_t),
-  };
 
   char buf[1024];
   while (fgets(buf, sizeof(buf), stdin)) {
@@ -201,21 +199,10 @@ int main(int argc, char *argv[]) {
     // strip newline
     buf[len - 1] = '\0';
 
-    // init parser
-    jiffy_parser_t parser;
-    jiffy_parser_init(&parser, &CBS, &stack, NULL);
-
     fprintf(stderr, "D: parsing: %s\n", buf);
 
-    // parse argument
-    if (!jiffy_parser_push(&parser, buf, len - 1)) {
-      dump_parser(&parser);
-      exit(EXIT_FAILURE);
-    }
-
-    // finalize parser
-    if (!jiffy_parser_fini(&parser)) {
-      dump_parser(&parser);
+    // parse line
+    if (!jiffy_parse(&CBS, stack_mem, STACK_LEN, buf, len - 1, NULL)) {
       exit(EXIT_FAILURE);
     }
 
