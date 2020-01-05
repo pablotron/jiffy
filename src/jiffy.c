@@ -1247,6 +1247,8 @@ typedef struct {
   // pointer to output byte data
   uint8_t *bytes;
   size_t num_bytes;
+
+  jiffy_err_t err;
 } jiffy_tree_parse_data_t;
 
 static void
@@ -1417,6 +1419,15 @@ on_tree_parse_object_key_start(
   parse_data->num_obj_rows++;
 }
 
+static void
+on_tree_parse_error(
+ const jiffy_parser_t * const p,
+ const jiffy_err_t err
+) {
+  jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
+  parse_data->err = err;
+}
+
 static const jiffy_parser_cbs_t
 TREE_PARSE_CBS = {
   .on_null                = on_tree_parse_null,
@@ -1439,8 +1450,7 @@ TREE_PARSE_CBS = {
   .on_object_end          = on_tree_parse_object_end,
   .on_object_key_start    = on_tree_parse_object_key_start,
 
-  // TODO
-  // .on_error               = on_tree_parse_error,
+  .on_error               = on_tree_parse_error,
 };
 
 static bool
@@ -1617,6 +1627,14 @@ tree_parse_fill_obj_rows(
   }
 }
 
+// invoke on_error callback with error code
+#define TREE_FAIL(tree, err) do { \
+  if ((tree)->cbs && (tree)->cbs->on_error) { \
+    (tree)->cbs->on_error((tree), err); \
+  } \
+  return false; \
+} while (0)
+
 bool
 jiffy_tree_new(
   jiffy_tree_t * const tree,
@@ -1627,8 +1645,8 @@ jiffy_tree_new(
   const size_t len,
   void * const user_data
 ) {
-  // check to make sure tree, cbs, and malloc were provided
-  if (!tree || !cbs) {
+  // check to make sure tree, is not null
+  if (!tree) {
     // return failure
     return false;
   }
@@ -1636,25 +1654,23 @@ jiffy_tree_new(
   // populate initial tree values
   tree->cbs = cbs;
   tree->user_data = user_data;
-  tree->data = NULL;
-  tree->vals = NULL;
 
   // populate scan data
   jiffy_tree_scan_data_t scan_data;
   if (!jiffy_tree_scan(&scan_data, stack, stack_len, src, len)) {
-    // return failure
-    return false;
+    TREE_FAIL(tree, scan_data.err);
   }
 
   // save tree value count
+  tree->data = NULL;
+  tree->vals = NULL;
   tree->num_vals = scan_data.num_vals;
 
   if (tree->num_vals > 0) {
     // allocate output data, check for error
     tree->data = jiffy_tree_output_malloc(tree, &scan_data);
     if (!tree->data) {
-      // return failure
-      return false;
+      TREE_FAIL(tree, JIFFY_ERR_TREE_OUTPUT_MALLOC_FAILED);
     }
 
     // populate output tree data
@@ -1663,8 +1679,7 @@ jiffy_tree_new(
     // allocate parse data memory, check for error
     uint8_t * const parse_mem = jiffy_tree_parse_data_malloc(tree, &scan_data);
     if (!parse_mem) {
-      // return failure
-      return false;
+      TREE_FAIL(tree, JIFFY_ERR_TREE_PARSE_MALLOC_FAILED);
     }
 
     // populate parse data
@@ -1721,12 +1736,14 @@ jiffy_tree_new(
 
       // number of bytes
       .num_bytes = 0,
+
+      // default error
+      .err = JIFFY_ERR_OK,
     };
 
     // parse tree, check for error
     if (!jiffy_tree_parse(&parse_data, stack, stack_len, src, len)) {
-      // return failure
-      return false;
+      TREE_FAIL(tree, parse_data.err);
     }
 
     // fill array rows
@@ -1741,6 +1758,13 @@ jiffy_tree_new(
 
   // return success
   return true;
+}
+
+void *
+jiffy_tree_get_user_data(
+  const jiffy_tree_t * const tree
+) {
+  return tree->user_data;
 }
 
 const jiffy_value_t *

@@ -24,6 +24,8 @@ extern "C" {
   JIFFY_ERR(EXPECTED_OBJECT_KEY, "expected object key"), \
   JIFFY_ERR(EXPECTED_COLON, "expected colon"), \
   JIFFY_ERR(NOT_DONE, "not done"), \
+  JIFFY_ERR(TREE_OUTPUT_MALLOC_FAILED, "tree output malloc() failed"), \
+  JIFFY_ERR(TREE_PARSE_MALLOC_FAILED, "tree parse malloc() failed"), \
   JIFFY_ERR(LAST, "unknown error"),
 
 /**
@@ -463,14 +465,16 @@ const jiffy_value_t *jiffy_object_get_nth_value(
   const size_t ofs
 );
 
+typedef struct jiffy_tree_t_ jiffy_tree_t;
+
 typedef struct {
   void *(*malloc)(const size_t, void * const);
   void (*free)(void * const, void * const);
 
-  void (*on_error)(const jiffy_err_t, void * const);
+  void (*on_error)(const jiffy_tree_t *, const jiffy_err_t);
 } jiffy_tree_cbs_t;
 
-typedef struct {
+struct jiffy_tree_t_ {
   const jiffy_tree_cbs_t *cbs;
   void *user_data;
 
@@ -484,7 +488,7 @@ typedef struct {
   // list of values (pointer into data)
   jiffy_value_t *vals;
   size_t num_vals;
-} jiffy_tree_t;
+};
 
 /**
  * TODO: document this
@@ -497,6 +501,13 @@ _Bool jiffy_tree_new(
   const void * const src,
   const size_t len,
   void * const user_data
+);
+
+/**
+ * Get user data associated with given tree.
+ */
+void *jiffy_tree_get_user_data(
+  const jiffy_tree_t * const tree
 );
 
 /**
