@@ -207,6 +207,16 @@ int main(int argc, char *argv[]) {
     }
 
     fprintf(stderr, "D: parsing done\n");
+
+    // create parse tree
+    jiffy_tree_t tree;
+    if (!jiffy_tree_new(&tree, NULL, stack_mem, STACK_LEN, buf, len - 1, NULL)) {
+      fprintf(stderr, "jiffy_tree_new() failed\n");
+      exit(EXIT_FAILURE);
+    }
+
+    // free tree
+    jiffy_tree_free(&tree);
   }
 
   return EXIT_SUCCESS;
