@@ -1,4 +1,5 @@
 CFLAGS=-W -Wall -Werror -pedantic -std=c11 -Wimplicit-fallthrough
+# CFLAGS= -W -Wall -Werror -pedantic -std=c11 -Wimplicit-fallthrough -g -pg
 OBJS=jiffy.o test.o
 APP=jiffy-test
 

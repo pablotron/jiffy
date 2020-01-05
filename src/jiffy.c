@@ -1095,7 +1095,7 @@ on_tree_scan_byte(
  const uint8_t byte
 ) {
   (void) byte;
-  jiffy_tree_scan_data_t *scan_data = jiffy_parser_get_user_data(p);
+  jiffy_tree_scan_data_t * const scan_data = jiffy_parser_get_user_data(p);
   scan_data->num_bytes++;
 }
 
@@ -1103,7 +1103,7 @@ static void
 on_tree_scan_val(
  const jiffy_parser_t * const p
 ) {
-  jiffy_tree_scan_data_t *scan_data = jiffy_parser_get_user_data(p);
+  jiffy_tree_scan_data_t * const scan_data = jiffy_parser_get_user_data(p);
   scan_data->num_vals++;
 }
 
@@ -1111,16 +1111,17 @@ static void
 on_tree_scan_container_start(
  const jiffy_parser_t * const p
 ) {
-  jiffy_tree_scan_data_t *scan_data = jiffy_parser_get_user_data(p);
+  jiffy_tree_scan_data_t * const scan_data = jiffy_parser_get_user_data(p);
   scan_data->curr_depth++;
   scan_data->max_depth = MAX(scan_data->curr_depth, scan_data->max_depth);
+  on_tree_scan_val(p);
 }
 
 static void
 on_tree_scan_container_end(
  const jiffy_parser_t * const p
 ) {
-  jiffy_tree_scan_data_t *scan_data = jiffy_parser_get_user_data(p);
+  jiffy_tree_scan_data_t * const scan_data = jiffy_parser_get_user_data(p);
   scan_data->curr_depth--;
 }
 
@@ -1135,7 +1136,7 @@ static void
 on_tree_scan_array_element_start(
  const jiffy_parser_t * const p
 ) {
-  jiffy_tree_scan_data_t *scan_data = jiffy_parser_get_user_data(p);
+  jiffy_tree_scan_data_t * const scan_data = jiffy_parser_get_user_data(p);
   scan_data->num_ary_rows++;
 }
 
@@ -1143,7 +1144,7 @@ static void
 on_tree_scan_object_start(
  const jiffy_parser_t * const p
 ) {
-  jiffy_tree_scan_data_t *scan_data = jiffy_parser_get_user_data(p);
+  jiffy_tree_scan_data_t * const scan_data = jiffy_parser_get_user_data(p);
   on_tree_scan_container_start(p);
   scan_data->num_objs++;
 }
@@ -1152,7 +1153,7 @@ static void
 on_tree_scan_object_key_start(
  const jiffy_parser_t * const p
 ) {
-  jiffy_tree_scan_data_t *scan_data = jiffy_parser_get_user_data(p);
+  jiffy_tree_scan_data_t * const scan_data = jiffy_parser_get_user_data(p);
   scan_data->num_obj_rows++;
 }
 
@@ -1161,7 +1162,7 @@ on_tree_scan_error(
  const jiffy_parser_t * const p,
  const jiffy_err_t err
 ) {
-  jiffy_tree_scan_data_t *scan_data = jiffy_parser_get_user_data(p);
+  jiffy_tree_scan_data_t * const scan_data = jiffy_parser_get_user_data(p);
   scan_data->err = err;
 }
 
@@ -1281,10 +1282,20 @@ on_tree_parse_number_start(
 ) {
   jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
   jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
+  parse_data->num_vals++;
 
   val->type = JIFFY_VALUE_TYPE_NUMBER;
   val->v_num.ptr = parse_data->bytes + parse_data->num_bytes;
   val->v_num.len = 0;
+}
+
+static void
+on_tree_parse_number_end(
+ const jiffy_parser_t * const p
+) {
+  jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
+  jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals - 1;
+  val->v_num.len = parse_data->bytes + parse_data->num_bytes - val->v_num.ptr;
 }
 
 static void
@@ -1297,25 +1308,26 @@ on_tree_parse_number_byte(
 }
 
 static void
-on_tree_parse_number_end(
- const jiffy_parser_t * const p
-) {
-  jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
-  jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
-  val->v_num.len = parse_data->bytes + parse_data->num_bytes - val->v_num.ptr;
-  parse_data->num_vals++;
-}
-
-static void
 on_tree_parse_string_start(
  const jiffy_parser_t * const p
 ) {
   jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
   jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
+  parse_data->num_vals++;
 
   val->type = JIFFY_VALUE_TYPE_STRING;
   val->v_str.ptr = parse_data->bytes + parse_data->num_bytes;
   val->v_str.len = 0;
+}
+
+static void
+on_tree_parse_string_end(
+ const jiffy_parser_t * const p
+) {
+  jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
+  jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals - 1;
+
+  val->v_str.len = parse_data->bytes + parse_data->num_bytes - val->v_str.ptr;
 }
 
 static void
@@ -1328,28 +1340,17 @@ on_tree_parse_string_byte(
 }
 
 static void
-on_tree_parse_string_end(
- const jiffy_parser_t * const p
-) {
-  jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
-  jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
-
-  val->v_str.len = parse_data->bytes + parse_data->num_bytes - val->v_str.ptr;
-  parse_data->num_vals++;
-}
-
-static void
 on_tree_parse_array_start(
  const jiffy_parser_t * const p
 ) {
   jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
   jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
+  parse_data->num_vals++;
 
   val->type = JIFFY_VALUE_TYPE_ARRAY;
   val->v_ary.len = 0;
 
   parse_data->stack[parse_data->stack_pos++] = val;
-  parse_data->num_vals++;
 }
 
 static void
@@ -1384,12 +1385,12 @@ on_tree_parse_object_start(
 ) {
   jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
   jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
+  parse_data->num_vals++;
 
   val->type = JIFFY_VALUE_TYPE_OBJECT;
   val->v_obj.len = 0;
 
   parse_data->stack[parse_data->stack_pos++] = val;
-  parse_data->num_vals++;
 }
 
 static void
@@ -1409,8 +1410,8 @@ on_tree_parse_object_key_start(
 
   // populate object row
   parse_data->obj_rows[ofs].obj = parse_data->stack[parse_data->stack_pos - 1];
-  parse_data->obj_rows[ofs].key = parse_data->tree->vals + parse_data->num_vals;
-  parse_data->obj_rows[ofs].val = parse_data->tree->vals + parse_data->num_vals + 1;
+  parse_data->obj_rows[ofs].key = parse_data->tree->vals + parse_data->num_vals - 1;
+  parse_data->obj_rows[ofs].val = parse_data->tree->vals + parse_data->num_vals;
 
   // increment object row count
   parse_data->obj_rows[ofs].obj->v_obj.len++;

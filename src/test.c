@@ -211,9 +211,21 @@ int main(int argc, char *argv[]) {
     // create parse tree
     jiffy_tree_t tree;
     if (!jiffy_tree_new(&tree, NULL, stack_mem, STACK_LEN, buf, len - 1, NULL)) {
-      fprintf(stderr, "jiffy_tree_new() failed\n");
+      fprintf(stderr, "E: jiffy_tree_new() failed\n");
       exit(EXIT_FAILURE);
     }
+
+    // get the root value of tree
+    const jiffy_value_t *root = jiffy_tree_get_root_value(&tree);
+    if (!root) {
+      fprintf(stderr, "E: jiffy_tree_get_root_value() failed\n");
+      exit(EXIT_FAILURE);
+    }
+
+    // print root value type
+    const jiffy_value_type_t root_type = jiffy_value_get_type(root);
+    const char * const type_name = jiffy_value_type_to_s(root_type);
+    fprintf(stderr, "D: type = %s\n", type_name);
 
     // free tree
     jiffy_tree_free(&tree);
