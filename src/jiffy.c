@@ -1410,8 +1410,8 @@ on_tree_parse_object_key_start(
 
   // populate object row
   parse_data->obj_rows[ofs].obj = parse_data->stack[parse_data->stack_pos - 1];
-  parse_data->obj_rows[ofs].key = parse_data->tree->vals + parse_data->num_vals - 1;
-  parse_data->obj_rows[ofs].val = parse_data->tree->vals + parse_data->num_vals;
+  parse_data->obj_rows[ofs].key = parse_data->tree->vals + parse_data->num_vals;
+  parse_data->obj_rows[ofs].val = parse_data->tree->vals + parse_data->num_vals + 1;
 
   // increment object row count
   parse_data->obj_rows[ofs].obj->v_obj.len++;
