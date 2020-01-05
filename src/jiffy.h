@@ -312,6 +312,209 @@ jiffy_parse(
   void * const
 );
 
+#define JIFFY_VALUE_TYPE_LIST \
+  JIFFY_VALUE_TYPE(NULL, "null"), \
+  JIFFY_VALUE_TYPE(TRUE, "true"), \
+  JIFFY_VALUE_TYPE(FALSE, "false"), \
+  JIFFY_VALUE_TYPE(NUMBER, "number"), \
+  JIFFY_VALUE_TYPE(STRING, "string"), \
+  JIFFY_VALUE_TYPE(ARRAY, "array"), \
+  JIFFY_VALUE_TYPE(OBJECT, "object"), \
+  JIFFY_VALUE_TYPE(LAST, "invalid"),
+
+typedef enum {
+#define JIFFY_VALUE_TYPE(a, b) JIFFY_VALUE_TYPE_##a
+JIFFY_VALUE_TYPE_LIST
+#undef JIFFY_VALUE_TYPE
+} jiffy_value_type_t;
+
+/**
+ * Convert value type to human-readable text.
+ *
+ * Note: The string returned by this method is read-only.
+ */
+const char *jiffy_value_type_to_s(
+  const jiffy_value_type_t
+);
+
+// forward declaration
+typedef struct jiffy_value_t_ jiffy_value_t;
+
+struct jiffy_value_t_ {
+  jiffy_value_type_t type;
+
+  union {
+    struct {
+      uint8_t *ptr;
+      size_t len;
+    } v_num;
+
+    struct {
+      uint8_t *ptr;
+      size_t len;
+    } v_str;
+
+    struct {
+      jiffy_value_t **vals;
+      size_t len;
+    } v_obj;
+
+    struct {
+      jiffy_value_t **vals;
+      size_t len;
+    } v_ary;
+  };
+};
+
+/**
+ * Get the type of the given value.
+ */
+jiffy_value_type_t jiffy_value_get_type(
+  const jiffy_value_t * const
+);
+
+/**
+ * Get a pointer to bytes and the number of bytes of the given number
+ * value.
+ *
+ * Returns NULL if the given value is not a number.
+ */
+const uint8_t *jiffy_number_get_bytes(
+  // value
+  const jiffy_value_t * const,
+
+  // pointer to store byte length
+  size_t * const
+);
+
+/**
+ * Get a pointer to bytes and the number of bytes of the given string
+ * value.
+ *
+ * Returns NULL if the given value is not a string.
+ */
+const uint8_t *jiffy_string_get_bytes(
+  // string value
+  const jiffy_value_t * const,
+
+  // pointer to returned byte count
+  size_t * const
+);
+
+/**
+ * Get the number of elements in the given array value.
+ *
+ * Note: Results are undefined if the given value is not an array.
+ */
+size_t jiffy_array_get_size(
+  // array value
+  const jiffy_value_t * const
+);
+
+/**
+ * Get the Nth value of the given array.
+ *
+ * Returns NULL if the given value is not an array or the given offset
+ * is out of bounds.
+ */
+const jiffy_value_t *jiffy_array_get_nth(
+  // array value
+  const jiffy_value_t * const,
+
+  // offset
+  const size_t
+);
+
+/**
+ * Get the number of elements in the given object value.
+ *
+ * Note: Results are undefined if the given value is not an object.
+ */
+size_t jiffy_object_get_size(
+  // object value
+  const jiffy_value_t * const
+);
+
+/**
+ * Get the Nth key of the given object.
+ *
+ * Returns NULL if the given value is not an object or the given offset
+ * is out of bounds.
+ */
+const jiffy_value_t *jiffy_object_get_nth_key(
+  // object value
+  const jiffy_value_t * const,
+
+  // offset
+  const size_t
+);
+
+/**
+ * Get the Nth value of the given object.
+ *
+ * Returns NULL if the given value is not an object or the given offset
+ * is out of bounds.
+ */
+const jiffy_value_t *jiffy_object_get_nth_value(
+  // object value
+  const jiffy_value_t * const,
+
+  // offset
+  const size_t ofs
+);
+
+typedef struct {
+  void *(*malloc)(const size_t, void * const);
+  void (*free)(void * const, void * const);
+
+  void (*on_error)(const jiffy_err_t, void * const);
+} jiffy_tree_cbs_t;
+
+typedef struct {
+  const jiffy_tree_cbs_t *cbs;
+  void *user_data;
+
+  // all allocated data, ordered like so:
+  // * vals
+  // * array rows
+  // * object rows
+  // * bytes (byte data for numbers and strings)
+  uint8_t *data;
+
+  // list of values (pointer into data)
+  jiffy_value_t *vals;
+  size_t num_vals;
+} jiffy_tree_t;
+
+/**
+ * TODO: document this
+ */
+_Bool jiffy_tree_new(
+  jiffy_tree_t * const tree,
+  const jiffy_tree_cbs_t * const cbs,
+  jiffy_parser_state_t * const stack,
+  const size_t stack_len,
+  const void * const src,
+  const size_t len,
+  void * const user_data
+);
+
+/**
+ * Get the root value for the given tree.
+ *
+ * Returns NULL if the given tree is empty.
+ */
+const jiffy_value_t *jiffy_tree_get_root_value(
+  const jiffy_tree_t * const
+);
+
+/**
+ * Free memory associated with tree.
+ */
+void jiffy_tree_free(
+  jiffy_tree_t * const
+);
+
 #ifdef __cplusplus
 };
 #endif // __cplusplus
