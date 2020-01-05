@@ -86,9 +86,9 @@ nibble(
  */
 static const char *
 JIFFY_ERRORS[] = {
-#define JIFFY_ERR(a, b) b
+#define JIFFY_DEF_ERR(a, b) b
 JIFFY_ERROR_LIST
-#undef JIFFY_ERR
+#undef JIFFY_DEF_ERR
 };
 
 const char *
@@ -103,50 +103,50 @@ jiffy_err_to_s(
  * Parser states.
  */
 #define JIFFY_STATE_LIST \
-  JIFFY_STATE(INIT), \
-  JIFFY_STATE(DONE), \
-  JIFFY_STATE(FAIL), \
-  JIFFY_STATE(VALUE), \
-  JIFFY_STATE(LIT_N), \
-  JIFFY_STATE(LIT_NU), \
-  JIFFY_STATE(LIT_NUL), \
-  JIFFY_STATE(LIT_T), \
-  JIFFY_STATE(LIT_TR), \
-  JIFFY_STATE(LIT_TRU), \
-  JIFFY_STATE(LIT_F), \
-  JIFFY_STATE(LIT_FA), \
-  JIFFY_STATE(LIT_FAL), \
-  JIFFY_STATE(LIT_FALS), \
-  JIFFY_STATE(NUMBER_AFTER_SIGN), \
-  JIFFY_STATE(NUMBER_AFTER_LEADING_ZERO), \
-  JIFFY_STATE(NUMBER_INT), \
-  JIFFY_STATE(NUMBER_AFTER_DOT), \
-  JIFFY_STATE(NUMBER_FRAC), \
-  JIFFY_STATE(NUMBER_AFTER_EXP), \
-  JIFFY_STATE(NUMBER_AFTER_EXP_SIGN), \
-  JIFFY_STATE(NUMBER_EXP_NUM), \
-  JIFFY_STATE(STRING), \
-  JIFFY_STATE(STRING_ESC), \
-  JIFFY_STATE(STRING_UNICODE), \
-  JIFFY_STATE(STRING_UNICODE_X), \
-  JIFFY_STATE(STRING_UNICODE_XX), \
-  JIFFY_STATE(STRING_UNICODE_XXX), \
-  JIFFY_STATE(OBJECT_START), \
-  JIFFY_STATE(ARRAY_START), \
-  JIFFY_STATE(ARRAY_ELEMENT), \
-  JIFFY_STATE(OBJECT_KEY), \
-  JIFFY_STATE(AFTER_OBJECT_KEY), \
-  JIFFY_STATE(BEFORE_OBJECT_KEY), \
-  JIFFY_STATE(AFTER_OBJECT_VALUE), \
-  JIFFY_STATE(LAST),
+  JIFFY_DEF_STATE(INIT), \
+  JIFFY_DEF_STATE(DONE), \
+  JIFFY_DEF_STATE(FAIL), \
+  JIFFY_DEF_STATE(VALUE), \
+  JIFFY_DEF_STATE(LIT_N), \
+  JIFFY_DEF_STATE(LIT_NU), \
+  JIFFY_DEF_STATE(LIT_NUL), \
+  JIFFY_DEF_STATE(LIT_T), \
+  JIFFY_DEF_STATE(LIT_TR), \
+  JIFFY_DEF_STATE(LIT_TRU), \
+  JIFFY_DEF_STATE(LIT_F), \
+  JIFFY_DEF_STATE(LIT_FA), \
+  JIFFY_DEF_STATE(LIT_FAL), \
+  JIFFY_DEF_STATE(LIT_FALS), \
+  JIFFY_DEF_STATE(NUMBER_AFTER_SIGN), \
+  JIFFY_DEF_STATE(NUMBER_AFTER_LEADING_ZERO), \
+  JIFFY_DEF_STATE(NUMBER_INT), \
+  JIFFY_DEF_STATE(NUMBER_AFTER_DOT), \
+  JIFFY_DEF_STATE(NUMBER_FRAC), \
+  JIFFY_DEF_STATE(NUMBER_AFTER_EXP), \
+  JIFFY_DEF_STATE(NUMBER_AFTER_EXP_SIGN), \
+  JIFFY_DEF_STATE(NUMBER_EXP_NUM), \
+  JIFFY_DEF_STATE(STRING), \
+  JIFFY_DEF_STATE(STRING_ESC), \
+  JIFFY_DEF_STATE(STRING_UNICODE), \
+  JIFFY_DEF_STATE(STRING_UNICODE_X), \
+  JIFFY_DEF_STATE(STRING_UNICODE_XX), \
+  JIFFY_DEF_STATE(STRING_UNICODE_XXX), \
+  JIFFY_DEF_STATE(OBJECT_START), \
+  JIFFY_DEF_STATE(ARRAY_START), \
+  JIFFY_DEF_STATE(ARRAY_ELEMENT), \
+  JIFFY_DEF_STATE(OBJECT_KEY), \
+  JIFFY_DEF_STATE(AFTER_OBJECT_KEY), \
+  JIFFY_DEF_STATE(BEFORE_OBJECT_KEY), \
+  JIFFY_DEF_STATE(AFTER_OBJECT_VALUE), \
+  JIFFY_DEF_STATE(LAST),
 
 /**
  * Parser states.
  */
 enum jiffy_parser_states {
-#define JIFFY_STATE(a) STATE_##a
+#define JIFFY_DEF_STATE(a) STATE_##a
 JIFFY_STATE_LIST
-#undef JIFFY_STATE
+#undef JIFFY_DEF_STATE
 };
 
 /**
@@ -154,9 +154,9 @@ JIFFY_STATE_LIST
  */
 static const char *
 JIFFY_STATES[] = {
-#define JIFFY_STATE(a) "STATE_" # a
+#define JIFFY_DEF_STATE(a) "STATE_" # a
 JIFFY_STATE_LIST
-#undef JIFFY_STATE
+#undef JIFFY_DEF_STATE
 };
 
 const char *
@@ -952,21 +952,21 @@ jiffy_parse(
 }
 
 static const char *
-JIFFY_VALUE_TYPES[] = {
-#define JIFFY_VALUE_TYPE(a, b) b
-JIFFY_VALUE_TYPE_LIST
-#undef JIFFY_VALUE_TYPE
+JIFFY_TYPES[] = {
+#define JIFFY_DEF_TYPE(a, b) b
+JIFFY_TYPE_LIST
+#undef JIFFY_DEF_TYPE
 };
 
 const char *
-jiffy_value_type_to_s(
-  const jiffy_value_type_t type
+jiffy_type_to_s(
+  const jiffy_type_t type
 ) {
-  const size_t ofs = (type < JIFFY_VALUE_TYPE_LAST) ? type : JIFFY_VALUE_TYPE_LAST;
-  return JIFFY_VALUE_TYPES[ofs];
+  const size_t ofs = (type < JIFFY_TYPE_LAST) ? type : JIFFY_TYPE_LAST;
+  return JIFFY_TYPES[ofs];
 }
 
-jiffy_value_type_t
+jiffy_type_t
 jiffy_value_get_type(
   const jiffy_value_t * const val
 ) {
@@ -979,7 +979,7 @@ jiffy_number_get_bytes(
   size_t * const r_len
 ) {
   // value is a number
-  const bool is_valid = jiffy_value_get_type(val) == JIFFY_VALUE_TYPE_NUMBER;
+  const bool is_valid = jiffy_value_get_type(val) == JIFFY_TYPE_NUMBER;
 
   if (is_valid && r_len) {
     *r_len = val->v_num.len;
@@ -994,7 +994,7 @@ jiffy_string_get_bytes(
   size_t * const r_len
 ) {
   // value is a string
-  const bool is_valid = jiffy_value_get_type(val) == JIFFY_VALUE_TYPE_STRING;
+  const bool is_valid = jiffy_value_get_type(val) == JIFFY_TYPE_STRING;
 
   if (is_valid && r_len) {
     *r_len = val->v_str.len;
@@ -1017,7 +1017,7 @@ jiffy_array_get_nth(
 ) {
   const bool is_valid = (
     // value is an array
-    (jiffy_value_get_type(val) == JIFFY_VALUE_TYPE_ARRAY) &&
+    (jiffy_value_get_type(val) == JIFFY_TYPE_ARRAY) &&
 
     // offset is in bounds
     (ofs < val->v_ary.len)
@@ -1040,7 +1040,7 @@ jiffy_object_get_nth_key(
 ) {
   const bool is_valid = (
     // value is an object
-    (jiffy_value_get_type(val) == JIFFY_VALUE_TYPE_OBJECT) &&
+    (jiffy_value_get_type(val) == JIFFY_TYPE_OBJECT) &&
 
     // offset is in bounds
     (ofs < val->v_obj.len)
@@ -1056,7 +1056,7 @@ jiffy_object_get_nth_value(
 ) {
   const bool is_valid = (
     // value is an object
-    (jiffy_value_get_type(val) == JIFFY_VALUE_TYPE_OBJECT) &&
+    (jiffy_value_get_type(val) == JIFFY_TYPE_OBJECT) &&
 
     // offset is in bounds
     (ofs < val->v_obj.len)
@@ -1257,7 +1257,7 @@ on_tree_parse_null(
  const jiffy_parser_t * const p
 ) {
   jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
-  parse_data->tree->vals[parse_data->num_vals++].type = JIFFY_VALUE_TYPE_NULL;
+  parse_data->tree->vals[parse_data->num_vals++].type = JIFFY_TYPE_NULL;
 }
 
 static void
@@ -1265,7 +1265,7 @@ on_tree_parse_true(
  const jiffy_parser_t * const p
 ) {
   jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
-  parse_data->tree->vals[parse_data->num_vals++].type = JIFFY_VALUE_TYPE_TRUE;
+  parse_data->tree->vals[parse_data->num_vals++].type = JIFFY_TYPE_TRUE;
 }
 
 static void
@@ -1273,7 +1273,7 @@ on_tree_parse_false(
  const jiffy_parser_t * const p
 ) {
   jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
-  parse_data->tree->vals[parse_data->num_vals++].type = JIFFY_VALUE_TYPE_FALSE;
+  parse_data->tree->vals[parse_data->num_vals++].type = JIFFY_TYPE_FALSE;
 }
 
 static void
@@ -1284,7 +1284,7 @@ on_tree_parse_number_start(
   jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
   parse_data->num_vals++;
 
-  val->type = JIFFY_VALUE_TYPE_NUMBER;
+  val->type = JIFFY_TYPE_NUMBER;
   val->v_num.ptr = parse_data->bytes + parse_data->num_bytes;
   val->v_num.len = 0;
 }
@@ -1315,7 +1315,7 @@ on_tree_parse_string_start(
   jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
   parse_data->num_vals++;
 
-  val->type = JIFFY_VALUE_TYPE_STRING;
+  val->type = JIFFY_TYPE_STRING;
   val->v_str.ptr = parse_data->bytes + parse_data->num_bytes;
   val->v_str.len = 0;
 }
@@ -1347,7 +1347,7 @@ on_tree_parse_array_start(
   jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
   parse_data->num_vals++;
 
-  val->type = JIFFY_VALUE_TYPE_ARRAY;
+  val->type = JIFFY_TYPE_ARRAY;
   val->v_ary.len = 0;
 
   parse_data->stack[parse_data->stack_pos++] = val;
@@ -1387,7 +1387,7 @@ on_tree_parse_object_start(
   jiffy_value_t * const val = parse_data->tree->vals + parse_data->num_vals;
   parse_data->num_vals++;
 
-  val->type = JIFFY_VALUE_TYPE_OBJECT;
+  val->type = JIFFY_TYPE_OBJECT;
   val->v_obj.len = 0;
 
   parse_data->stack[parse_data->stack_pos++] = val;

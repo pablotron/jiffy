@@ -30,17 +30,17 @@ dump_value(
   const jiffy_value_t * const value,
   const size_t depth
 ) {
-  const jiffy_value_type_t type = jiffy_value_get_type(value);
-  const char * const type_name = jiffy_value_type_to_s(type);
+  const jiffy_type_t type = jiffy_value_get_type(value);
+  const char * const type_name = jiffy_type_to_s(type);
 
   indent(depth);
   fprintf(stderr, "%s", type_name);
   switch (type) {
-  case JIFFY_VALUE_TYPE_NULL:
-  case JIFFY_VALUE_TYPE_TRUE:
-  case JIFFY_VALUE_TYPE_FALSE:
+  case JIFFY_TYPE_NULL:
+  case JIFFY_TYPE_TRUE:
+  case JIFFY_TYPE_FALSE:
     break;
-  case JIFFY_VALUE_TYPE_NUMBER:
+  case JIFFY_TYPE_NUMBER:
     {
       size_t len;
       const uint8_t * const ptr = jiffy_number_get_bytes(value, &len);
@@ -54,7 +54,7 @@ dump_value(
     }
 
     break;
-  case JIFFY_VALUE_TYPE_STRING:
+  case JIFFY_TYPE_STRING:
     {
       size_t len;
       const uint8_t * const ptr = jiffy_string_get_bytes(value, &len);
@@ -68,7 +68,7 @@ dump_value(
     }
 
     break;
-  case JIFFY_VALUE_TYPE_ARRAY:
+  case JIFFY_TYPE_ARRAY:
     {
       const size_t len = jiffy_array_get_size(value);
 
@@ -85,7 +85,7 @@ dump_value(
     }
 
     break;
-  case JIFFY_VALUE_TYPE_OBJECT:
+  case JIFFY_TYPE_OBJECT:
     {
       const size_t len = jiffy_object_get_size(value);
       if (len > 0) {
@@ -316,8 +316,8 @@ int main(int argc, char *argv[]) {
     }
 
     // print root value type
-    const jiffy_value_type_t root_type = jiffy_value_get_type(root);
-    const char * const type_name = jiffy_value_type_to_s(root_type);
+    const jiffy_type_t root_type = jiffy_value_get_type(root);
+    const char * const type_name = jiffy_type_to_s(root_type);
     fprintf(stderr, "D: type = %s\n", type_name);
 
     dump_value(root, 0);

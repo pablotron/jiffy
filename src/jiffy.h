@@ -9,24 +9,24 @@ extern "C" {
 #include <stddef.h> // size_t
 
 #define JIFFY_ERROR_LIST \
-  JIFFY_ERR(OK, "ok"), \
-  JIFFY_ERR(BAD_BYTE, "bad byte"), \
-  JIFFY_ERR(BAD_STATE, "bad state"), \
-  JIFFY_ERR(BAD_ESCAPE, "bad escape"), \
-  JIFFY_ERR(BAD_UNICODE_ESCAPE, "bad unicode escape"), \
-  JIFFY_ERR(BAD_UNICODE_CODEPOINT, "bad unicode code point"), \
-  JIFFY_ERR(STACK_UNDERFLOW, "stack underflow"), \
-  JIFFY_ERR(STACK_OVERFLOW, "stack overflow"), \
-  JIFFY_ERR(EXPECTED_ARRAY_ELEMENT, "expected array element"), \
-  JIFFY_ERR(EXPECTED_COMMA_OR_ARRAY_END, "expected comma or array end"), \
-  JIFFY_ERR(EXPECTED_STRING_OR_OBJECT_END, "expected string or object end"), \
-  JIFFY_ERR(EXPECTED_COMMA_OR_OBJECT_END, "expected comma or object end"), \
-  JIFFY_ERR(EXPECTED_OBJECT_KEY, "expected object key"), \
-  JIFFY_ERR(EXPECTED_COLON, "expected colon"), \
-  JIFFY_ERR(NOT_DONE, "not done"), \
-  JIFFY_ERR(TREE_OUTPUT_MALLOC_FAILED, "tree output malloc() failed"), \
-  JIFFY_ERR(TREE_PARSE_MALLOC_FAILED, "tree parse malloc() failed"), \
-  JIFFY_ERR(LAST, "unknown error"),
+  JIFFY_DEF_ERR(OK, "ok"), \
+  JIFFY_DEF_ERR(BAD_BYTE, "bad byte"), \
+  JIFFY_DEF_ERR(BAD_STATE, "bad state"), \
+  JIFFY_DEF_ERR(BAD_ESCAPE, "bad escape"), \
+  JIFFY_DEF_ERR(BAD_UNICODE_ESCAPE, "bad unicode escape"), \
+  JIFFY_DEF_ERR(BAD_UNICODE_CODEPOINT, "bad unicode code point"), \
+  JIFFY_DEF_ERR(STACK_UNDERFLOW, "stack underflow"), \
+  JIFFY_DEF_ERR(STACK_OVERFLOW, "stack overflow"), \
+  JIFFY_DEF_ERR(EXPECTED_ARRAY_ELEMENT, "expected array element"), \
+  JIFFY_DEF_ERR(EXPECTED_COMMA_OR_ARRAY_END, "expected comma or array end"), \
+  JIFFY_DEF_ERR(EXPECTED_STRING_OR_OBJECT_END, "expected string or object end"), \
+  JIFFY_DEF_ERR(EXPECTED_COMMA_OR_OBJECT_END, "expected comma or object end"), \
+  JIFFY_DEF_ERR(EXPECTED_OBJECT_KEY, "expected object key"), \
+  JIFFY_DEF_ERR(EXPECTED_COLON, "expected colon"), \
+  JIFFY_DEF_ERR(NOT_DONE, "not done"), \
+  JIFFY_DEF_ERR(TREE_OUTPUT_MALLOC_FAILED, "tree output malloc() failed"), \
+  JIFFY_DEF_ERR(TREE_PARSE_MALLOC_FAILED, "tree parse malloc() failed"), \
+  JIFFY_DEF_ERR(LAST, "unknown error"),
 
 /**
  * Error codes.  These are passed to the on_error callback when the
@@ -36,9 +36,9 @@ extern "C" {
  * code.
  */
 typedef enum {
-#define JIFFY_ERR(a, b) JIFFY_ERR_##a
+#define JIFFY_DEF_ERR(a, b) JIFFY_ERR_##a
 JIFFY_ERROR_LIST
-#undef JIFFY_ERR
+#undef JIFFY_DEF_ERR
 } jiffy_err_t;
 
 /**
@@ -314,36 +314,36 @@ jiffy_parse(
   void * const
 );
 
-#define JIFFY_VALUE_TYPE_LIST \
-  JIFFY_VALUE_TYPE(NULL, "null"), \
-  JIFFY_VALUE_TYPE(TRUE, "true"), \
-  JIFFY_VALUE_TYPE(FALSE, "false"), \
-  JIFFY_VALUE_TYPE(NUMBER, "number"), \
-  JIFFY_VALUE_TYPE(STRING, "string"), \
-  JIFFY_VALUE_TYPE(ARRAY, "array"), \
-  JIFFY_VALUE_TYPE(OBJECT, "object"), \
-  JIFFY_VALUE_TYPE(LAST, "invalid"),
+#define JIFFY_TYPE_LIST \
+  JIFFY_DEF_TYPE(NULL, "null"), \
+  JIFFY_DEF_TYPE(TRUE, "true"), \
+  JIFFY_DEF_TYPE(FALSE, "false"), \
+  JIFFY_DEF_TYPE(NUMBER, "number"), \
+  JIFFY_DEF_TYPE(STRING, "string"), \
+  JIFFY_DEF_TYPE(ARRAY, "array"), \
+  JIFFY_DEF_TYPE(OBJECT, "object"), \
+  JIFFY_DEF_TYPE(LAST, "invalid"),
 
 typedef enum {
-#define JIFFY_VALUE_TYPE(a, b) JIFFY_VALUE_TYPE_##a
-JIFFY_VALUE_TYPE_LIST
-#undef JIFFY_VALUE_TYPE
-} jiffy_value_type_t;
+#define JIFFY_DEF_TYPE(a, b) JIFFY_TYPE_##a
+JIFFY_TYPE_LIST
+#undef JIFFY_DEF_TYPE
+} jiffy_type_t;
 
 /**
  * Convert value type to human-readable text.
  *
  * Note: The string returned by this method is read-only.
  */
-const char *jiffy_value_type_to_s(
-  const jiffy_value_type_t
+const char *jiffy_type_to_s(
+  const jiffy_type_t
 );
 
 // forward declaration
 typedef struct jiffy_value_t_ jiffy_value_t;
 
 struct jiffy_value_t_ {
-  jiffy_value_type_t type;
+  jiffy_type_t type;
 
   union {
     struct {
@@ -371,7 +371,7 @@ struct jiffy_value_t_ {
 /**
  * Get the type of the given value.
  */
-jiffy_value_type_t jiffy_value_get_type(
+jiffy_type_t jiffy_value_get_type(
   const jiffy_value_t * const
 );
 
