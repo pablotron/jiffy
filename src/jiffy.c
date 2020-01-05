@@ -1637,7 +1637,7 @@ tree_parse_fill_obj_rows(
 } while (0)
 
 bool
-jiffy_tree_new(
+jiffy_tree_new_ex(
   jiffy_tree_t * const tree,
   const jiffy_tree_cbs_t * const cbs,
   jiffy_parser_state_t * const stack,
@@ -1759,6 +1759,123 @@ jiffy_tree_new(
 
   // return success
   return true;
+}
+
+static size_t
+jiffy_tree_get_required_stack_depth(
+  jiffy_tree_t * const tree,
+  const void * const src_ptr,
+  const size_t len,
+  size_t *ret_depth
+) {
+  const uint8_t * const src = src_ptr;
+  size_t depth = 0;
+  size_t max_depth = 16;
+  bool in_str = false;
+
+  for (size_t i = 0; i < len; i++) {
+    if (in_str) {
+      switch (src[i]) {
+      case '"':
+        // decriment depth
+        depth -= 2;
+        in_str = false;
+
+        break;
+      case '\\':
+        if ((i < len - 1) && src[i + 1] == '"') {
+          // skip escaped quote
+          i++;
+        }
+
+        break;
+      }
+    } else {
+      switch (src[i]) {
+      case '{':
+        depth += 4;
+        max_depth = MAX(depth, max_depth);
+
+        break;
+      case '}':
+        depth -= 4;
+
+        break;
+      case '[':
+        depth += 3;
+        max_depth = MAX(depth, max_depth);
+
+        break;
+      case ']':
+        depth -= 3;
+
+        break;
+      case '"':
+        depth += 2;
+        max_depth = MAX(depth, max_depth);
+        in_str = true;
+
+        break;
+      }
+    }
+  }
+
+  if (depth != 0) {
+    // depth is nonzero, which means string isn't valid json
+    TREE_FAIL(tree, JIFFY_ERR_TREE_STACK_SCAN_FAILED);
+  }
+
+  if (ret_depth) {
+    // save result
+    *ret_depth = max_depth;
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_tree_new(
+  jiffy_tree_t * const tree,
+  const jiffy_tree_cbs_t * const cbs,
+  const void * const src,
+  const size_t len,
+  void * const user_data
+) {
+  // check to make sure tree, is not null
+  if (!tree) {
+    // return failure
+    return false;
+  }
+
+  // populate initial tree values
+  tree->cbs = cbs;
+  tree->user_data = user_data;
+
+  // get needed stack size
+  size_t stack_len;
+  if (!jiffy_tree_get_required_stack_depth(tree, src, len, &stack_len)) {
+    // return failure
+    return false;
+  }
+
+  // get number of bytes needed for stack
+  const size_t num_bytes = sizeof(jiffy_parser_state_t) * stack_len;
+
+  // alloc stack, check for error
+  jiffy_parser_state_t *stack = jiffy_tree_parser_malloc(tree, num_bytes);
+  if (!stack) {
+    TREE_FAIL(tree, JIFFY_ERR_TREE_STACK_MALLOC_FAILED);
+  }
+
+  // parse tree, get result
+  const bool r = jiffy_tree_new_ex(tree, cbs, stack, stack_len, src, len, user_data);
+
+  // free stack
+  jiffy_tree_parser_free(tree, stack);
+
+  // return result
+  return r;
 }
 
 void *

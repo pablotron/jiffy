@@ -303,7 +303,8 @@ int main(int argc, char *argv[]) {
 
     // create parse tree
     jiffy_tree_t tree;
-    if (!jiffy_tree_new(&tree, NULL, stack_mem, STACK_LEN, buf, len - 1, NULL)) {
+    // if (!jiffy_tree_new_ex(&tree, NULL, stack_mem, STACK_LEN, buf, len - 1, NULL)) {
+    if (!jiffy_tree_new(&tree, NULL, buf, len - 1, NULL)) {
       fprintf(stderr, "E: jiffy_tree_new() failed\n");
       exit(EXIT_FAILURE);
     }

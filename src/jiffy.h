@@ -24,6 +24,8 @@ extern "C" {
   JIFFY_DEF_ERR(EXPECTED_OBJECT_KEY, "expected object key"), \
   JIFFY_DEF_ERR(EXPECTED_COLON, "expected colon"), \
   JIFFY_DEF_ERR(NOT_DONE, "not done"), \
+  JIFFY_DEF_ERR(TREE_STACK_SCAN_FAILED, "tree stack scan failed"), \
+  JIFFY_DEF_ERR(TREE_STACK_MALLOC_FAILED, "tree stack malloc() failed"), \
   JIFFY_DEF_ERR(TREE_OUTPUT_MALLOC_FAILED, "tree output malloc() failed"), \
   JIFFY_DEF_ERR(TREE_PARSE_MALLOC_FAILED, "tree parse malloc() failed"), \
   JIFFY_DEF_ERR(LAST, "unknown error"),
@@ -494,6 +496,17 @@ struct jiffy_tree_t_ {
  * TODO: document this
  */
 _Bool jiffy_tree_new(
+  jiffy_tree_t * const tree,
+  const jiffy_tree_cbs_t * const cbs,
+  const void * const src,
+  const size_t len,
+  void * const user_data
+);
+
+/**
+ * TODO: document this
+ */
+_Bool jiffy_tree_new_ex(
   jiffy_tree_t * const tree,
   const jiffy_tree_cbs_t * const cbs,
   jiffy_parser_state_t * const stack,
