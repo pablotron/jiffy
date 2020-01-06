@@ -62,6 +62,11 @@ const char *jiffy_err_to_s(
  */
 typedef uint32_t jiffy_parser_state_t;
 
+typedef enum {
+  JIFFY_NUMBER_FLAG_FRAC = 0x01,
+  JIFFY_NUMBER_FLAG_EXP  = 0x02,
+} jiffy_number_flag_t;
+
 /**
  * Convert a internal parser state to human-readable text.
  *
@@ -165,6 +170,14 @@ typedef struct {
   // end of a number value.
   const jiffy_parser_cb_t on_number_end;
 
+  void (*on_number_flags)(
+    // pointer to parser context.
+    const jiffy_parser_t *,
+
+    // number flags
+    const uint32_t
+  );
+
   void (*on_error)(
     // pointer to parser context.
     const jiffy_parser_t *,
@@ -200,8 +213,16 @@ struct jiffy_parser_t_ {
   // jiffy_parser_et_num_bytes() function.
   size_t num_bytes;
 
-  // parsed hex value.  used to decode unicode escape sequences.
-  uint8_t hex;
+  union {
+    struct {
+      // parsed hex value.  used to decode unicode escape sequences.
+      uint8_t hex;
+    } v_str;
+
+    struct {
+      uint32_t flags;
+    } v_num;
+  };
 
   // opaque pointer to user data.  Provided by user via a
   // jiffy_parser_init() parameter.  Accessible via the

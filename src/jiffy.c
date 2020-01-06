@@ -197,6 +197,13 @@ jiffy_parser_state_to_s(
   } \
 } while (0)
 
+// call given callback with byte value, if it is non-NULL
+#define EMIT_FLAGS(p, cb_name, flags) do { \
+  if ((p)->cbs && (p)->cbs->cb_name) { \
+    (p)->cbs->cb_name(p, (flags)); \
+  } \
+} while (0)
+
 bool
 jiffy_parser_init(
   jiffy_parser_t * const p,
@@ -392,19 +399,31 @@ retry:
       break;
     case '+':
     case '-':
+      // clear number flags
+      p->v_num.flags = 0;
+
       SWAP(p, STATE_NUMBER_AFTER_SIGN);
       FIRE(p, on_number_start);
       EMIT(p, on_number_byte, byte);
+
       break;
     case '0':
+      // clear number flags
+      p->v_num.flags = 0;
+
       SWAP(p, STATE_NUMBER_AFTER_LEADING_ZERO);
       FIRE(p, on_number_start);
       EMIT(p, on_number_byte, byte);
+
       break;
     CASE_NONZERO_NUMBER
+      // clear number flags
+      p->v_num.flags = 0;
+
       SWAP(p, STATE_NUMBER_INT);
       FIRE(p, on_number_start);
       EMIT(p, on_number_byte, byte);
+
       break;
     case '{':
       SWAP(p, STATE_OBJECT_START);
@@ -523,12 +542,19 @@ retry:
     break;
   case STATE_NUMBER_AFTER_LEADING_ZERO:
     if (byte == '.') {
+      // set fraction flag
+      p->v_num.flags |= JIFFY_NUMBER_FLAG_FRAC;
+
       SWAP(p, STATE_NUMBER_AFTER_DOT);
       EMIT(p, on_number_byte, byte);
     } else if (byte == 'e' || byte == 'E') {
+      // set exponent flag
+      p->v_num.flags |= JIFFY_NUMBER_FLAG_EXP;
+
       SWAP(p, STATE_NUMBER_AFTER_EXP);
       EMIT(p, on_number_byte, byte);
     } else {
+      EMIT_FLAGS(p, on_number_flags, p->v_num.flags);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -541,15 +567,22 @@ retry:
       EMIT(p, on_number_byte, byte);
       break;
     case '.':
+      // set fraction flag
+      p->v_num.flags |= JIFFY_NUMBER_FLAG_FRAC;
+
       SWAP(p, STATE_NUMBER_AFTER_DOT);
       EMIT(p, on_number_byte, byte);
       break;
     case 'e':
     case 'E':
+      // set exponent flag
+      p->v_num.flags |= JIFFY_NUMBER_FLAG_EXP;
+
       SWAP(p, STATE_NUMBER_AFTER_EXP);
       EMIT(p, on_number_byte, byte);
       break;
     default:
+      EMIT_FLAGS(p, on_number_flags, p->v_num.flags);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -559,8 +592,12 @@ retry:
   case STATE_NUMBER_AFTER_DOT:
     switch (byte) {
     CASE_NUMBER
+      // set fraction flag
+      p->v_num.flags |= JIFFY_NUMBER_FLAG_FRAC;
+
       SWAP(p, STATE_NUMBER_FRAC);
       EMIT(p, on_number_byte, byte);
+
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_BYTE);
@@ -574,10 +611,14 @@ retry:
       break;
     case 'e':
     case 'E':
+      // set exponent flag
+      p->v_num.flags |= JIFFY_NUMBER_FLAG_EXP;
+
       SWAP(p, STATE_NUMBER_AFTER_EXP);
       EMIT(p, on_number_byte, byte);
       break;
     default:
+      EMIT_FLAGS(p, on_number_flags, p->v_num.flags);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -617,6 +658,7 @@ retry:
       EMIT(p, on_number_byte, byte);
       break;
     default:
+      EMIT_FLAGS(p, on_number_flags, p->v_num.flags);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -680,8 +722,8 @@ retry:
       POP(p);
       break;
     case 'u':
+      p->v_str.hex = 0;
       SWAP(p, STATE_STRING_UNICODE);
-      p->hex = 0;
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_ESCAPE);
@@ -691,7 +733,7 @@ retry:
   case STATE_STRING_UNICODE:
     switch (byte) {
     CASE_HEX
-      p->hex = (p->hex << 4) + nibble(byte);
+      p->v_str.hex = (p->v_str.hex << 4) + nibble(byte);
       SWAP(p, STATE_STRING_UNICODE_X);
       break;
     default:
@@ -702,7 +744,7 @@ retry:
   case STATE_STRING_UNICODE_X:
     switch (byte) {
     CASE_HEX
-      p->hex = (p->hex << 4) + nibble(byte);
+      p->v_str.hex = (p->v_str.hex << 4) + nibble(byte);
       SWAP(p, STATE_STRING_UNICODE_XX);
       break;
     default:
@@ -713,7 +755,7 @@ retry:
   case STATE_STRING_UNICODE_XX:
     switch (byte) {
     CASE_HEX
-      p->hex = (p->hex << 4) + nibble(byte);
+      p->v_str.hex = (p->v_str.hex << 4) + nibble(byte);
       SWAP(p, STATE_STRING_UNICODE_XXX);
       break;
     default:
@@ -724,8 +766,8 @@ retry:
   case STATE_STRING_UNICODE_XXX:
     switch (byte) {
     CASE_HEX
-      p->hex = (p->hex << 4) + nibble(byte);
-      if (!jiffy_parser_emit_utf8(p, p->hex)) {
+      p->v_str.hex = (p->v_str.hex << 4) + nibble(byte);
+      if (!jiffy_parser_emit_utf8(p, p->v_str.hex)) {
         FAIL(p, JIFFY_ERR_BAD_UNICODE_CODEPOINT);
       }
       POP(p);
