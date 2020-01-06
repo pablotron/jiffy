@@ -8,11 +8,16 @@ extern "C" {
 #include <stdint.h> // uint8_t
 #include <stddef.h> // size_t
 
+/**
+ * Jiffy errors.
+ */
 #define JIFFY_ERROR_LIST \
   JIFFY_DEF_ERR(OK, "ok"), \
   JIFFY_DEF_ERR(BAD_BYTE, "bad byte"), \
   JIFFY_DEF_ERR(BAD_STATE, "bad state"), \
   JIFFY_DEF_ERR(BAD_ESCAPE, "bad escape"), \
+  JIFFY_DEF_ERR(BAD_UTF16_BOM, "bad UTF-16 byte order mark"), \
+  JIFFY_DEF_ERR(BAD_UTF8_BOM, "bad UTF-8 byte order mark"), \
   JIFFY_DEF_ERR(BAD_UNICODE_ESCAPE, "bad unicode escape"), \
   JIFFY_DEF_ERR(BAD_UNICODE_CODEPOINT, "bad unicode code point"), \
   JIFFY_DEF_ERR(STACK_UNDERFLOW, "stack underflow"), \
@@ -53,6 +58,38 @@ const char *jiffy_err_to_s(
   const jiffy_err_t
 );
 
+#define JIFFY_WARNING_LIST \
+  JIFFY_DEF_WARNING(UTF16_BOM, "encountered UTF-16 byte order mark"), \
+  JIFFY_DEF_WARNING(UTF8_BOM, "encountered UTF-8 byte order mark"), \
+  JIFFY_DEF_WARNING(LAST, "unknown warning"),
+
+/**
+ * Warning codes.  A warning indicates a non-fatal problem with the
+ * input that you may wish to be aware of, such as the presence of a
+ * byte order mark.
+ *
+ * These are passed to the on_warning callback when the jiffy_parser_*()
+ * functions encounter a warning.
+ *
+ * You can use jiffy_warning_to_s() to get a text description of the
+ * warning code.
+ */
+typedef enum {
+#define JIFFY_DEF_WARNING(a, b) JIFFY_WARNING_##a
+JIFFY_WARNING_LIST
+#undef JIFFY_DEF_WARNING
+} jiffy_warning_t;
+
+/**
+ * Convert an warning code to human-readable text.
+ *
+ * Note: The string returned by this method is read-only.
+ */
+const char *jiffy_warning_to_s(
+  // warning code
+  const jiffy_warning_t
+);
+
 /**
  * Parser state.
  *
@@ -63,7 +100,10 @@ const char *jiffy_err_to_s(
 typedef uint32_t jiffy_parser_state_t;
 
 typedef enum {
+  // number contains a decimal component
   JIFFY_NUMBER_FLAG_FRAC = 0x01,
+
+  // number contains an exponent
   JIFFY_NUMBER_FLAG_EXP  = 0x02,
 } jiffy_number_flag_t;
 
@@ -170,12 +210,24 @@ typedef struct {
   // end of a number value.
   const jiffy_parser_cb_t on_number_end;
 
+  // fired just before the end of a number value; contains a
+  // union of the jiffy_number_flag_t flags.
   void (*on_number_flags)(
     // pointer to parser context.
     const jiffy_parser_t *,
 
     // number flags
     const uint32_t
+  );
+
+  // fired when the parser encounters a non-fatal condition, such as the
+  // presence of a byte order mark
+  void (*on_warning)(
+    // pointer to parser context.
+    const jiffy_parser_t *,
+
+    // warning code
+    const jiffy_warning_t
   );
 
   void (*on_error)(

@@ -100,12 +100,33 @@ jiffy_err_to_s(
 }
 
 /**
+ * Warning strings.  Used by jiffy_warning_to_s().
+ */
+static const char *
+JIFFY_WARNINGS[] = {
+#define JIFFY_DEF_WARNING(a, b) b
+JIFFY_WARNING_LIST
+#undef JIFFY_DEF_WARNING
+};
+
+const char *
+jiffy_warning_to_s(
+  const jiffy_warning_t code
+) {
+  const size_t ofs = (code < JIFFY_WARNING_LAST) ? code : JIFFY_WARNING_LAST;
+  return JIFFY_WARNINGS[ofs];
+}
+
+/**
  * Parser states.
  */
 #define JIFFY_STATE_LIST \
   JIFFY_DEF_STATE(INIT), \
   JIFFY_DEF_STATE(DONE), \
   JIFFY_DEF_STATE(FAIL), \
+  JIFFY_DEF_STATE(BOM_UTF16_X), \
+  JIFFY_DEF_STATE(BOM_UTF8_X), \
+  JIFFY_DEF_STATE(BOM_UTF8_XX), \
   JIFFY_DEF_STATE(VALUE), \
   JIFFY_DEF_STATE(LIT_N), \
   JIFFY_DEF_STATE(LIT_NU), \
@@ -190,10 +211,10 @@ jiffy_parser_state_to_s(
   } \
 } while (0)
 
-// call given callback with byte value, if it is non-NULL
-#define EMIT(p, cb_name, byte) do { \
+// call given callback with value, if it is non-NULL
+#define EMIT(p, cb_name, val) do { \
   if ((p)->cbs && (p)->cbs->cb_name) { \
-    (p)->cbs->cb_name(p, (byte)); \
+    (p)->cbs->cb_name(p, (val)); \
   } \
 } while (0)
 
@@ -374,12 +395,47 @@ retry:
     break;
   case STATE_INIT:
     switch (byte) {
-    CASE_WHITESPACE
-      // ignore
+    case 0xFE:
+      PUSH(p, STATE_BOM_UTF16_X);
+      break;
+    case 0xEF:
+      PUSH(p, STATE_BOM_UTF8_X);
       break;
     default:
       PUSH(p, STATE_VALUE);
       goto retry;
+    }
+
+    break;
+  case STATE_BOM_UTF16_X:
+    switch (byte) {
+    case 0xFF:
+      EMIT(p, on_warning, JIFFY_WARNING_UTF16_BOM);
+      SWAP(p, STATE_VALUE);
+      break;
+    default:
+      FAIL(p, JIFFY_ERR_BAD_UTF16_BOM);
+    }
+
+    break;
+  case STATE_BOM_UTF8_X:
+    switch (byte) {
+    case 0xBB:
+      SWAP(p, STATE_BOM_UTF8_XX);
+      break;
+    default:
+      FAIL(p, JIFFY_ERR_BAD_UTF8_BOM);
+    }
+
+    break;
+  case STATE_BOM_UTF8_XX:
+    switch (byte) {
+    case 0xBF:
+      EMIT(p, on_warning, JIFFY_WARNING_UTF8_BOM);
+      POP(p);
+      break;
+    default:
+      FAIL(p, JIFFY_ERR_BAD_UTF8_BOM);
     }
 
     break;
