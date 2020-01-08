@@ -2014,6 +2014,15 @@ jiffy_tree_free(
   JIFFY_DEF_WRITER_STATE(FAIL), \
   JIFFY_DEF_WRITER_STATE(STRING), \
   JIFFY_DEF_WRITER_STATE(NUMBER), \
+  JIFFY_DEF_WRITER_STATE(NUMBER_START), \
+  JIFFY_DEF_WRITER_STATE(NUMBER_AFTER_SIGN), \
+  JIFFY_DEF_WRITER_STATE(NUMBER_AFTER_LEADING_ZERO), \
+  JIFFY_DEF_WRITER_STATE(NUMBER_INT), \
+  JIFFY_DEF_WRITER_STATE(NUMBER_AFTER_DOT), \
+  JIFFY_DEF_WRITER_STATE(NUMBER_FRAC), \
+  JIFFY_DEF_WRITER_STATE(NUMBER_EXP_START), \
+  JIFFY_DEF_WRITER_STATE(NUMBER_EXP_AFTER_SIGN), \
+  JIFFY_DEF_WRITER_STATE(NUMBER_EXP), \
   JIFFY_DEF_WRITER_STATE(ARRAY), \
   JIFFY_DEF_WRITER_STATE(ARRAY_AFTER_VALUE), \
   JIFFY_DEF_WRITER_STATE(OBJECT), \
@@ -2228,7 +2237,7 @@ jiffy_writer_write_false(
 }
 
 bool
-jiffy_writer_object_start(
+jiffy_writer_write_object_start(
   jiffy_writer_t * const w
 ) {
   switch (WRITER_GET_STATE(w)) {
@@ -2252,7 +2261,7 @@ jiffy_writer_object_start(
 }
 
 bool
-jiffy_writer_object_end(
+jiffy_writer_write_object_end(
   jiffy_writer_t * const w
 ) {
   switch (WRITER_GET_STATE(w)) {
@@ -2270,7 +2279,7 @@ jiffy_writer_object_end(
 }
 
 bool
-jiffy_writer_array_start(
+jiffy_writer_write_array_start(
   jiffy_writer_t * const w
 ) {
   switch (WRITER_GET_STATE(w)) {
@@ -2294,7 +2303,7 @@ jiffy_writer_array_start(
 }
 
 bool
-jiffy_writer_array_end(
+jiffy_writer_write_array_end(
   jiffy_writer_t * const w
 ) {
   switch (WRITER_GET_STATE(w)) {
@@ -2309,4 +2318,265 @@ jiffy_writer_array_end(
 
   // return success
   return true;
+}
+
+bool
+jiffy_writer_write_object_key_start(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_OBJECT:
+    WRITER_PUSH(w, WRITER_STATE_OBJECT_KEY);
+    WRITER_WRITE(w, "\"", 1);
+    break;
+  case WRITER_STATE_OBJECT_AFTER_VALUE:
+    WRITER_WRITE(w, ",\"", 2);
+    WRITER_SWAP(w, WRITER_STATE_OBJECT_KEY);
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_write_object_key_end(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_OBJECT_KEY:
+    WRITER_WRITE(w, "\":", 2);
+    WRITER_SWAP(w, WRITER_STATE_OBJECT_VALUE);
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_write_number_start(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_INIT:
+  case WRITER_STATE_OBJECT_VALUE:
+    WRITER_PUSH(w, WRITER_STATE_NUMBER);
+    WRITER_PUSH(w, WRITER_STATE_NUMBER_START);
+    break;
+  case WRITER_STATE_ARRAY_AFTER_VALUE:
+    WRITER_WRITE(w, ",", 1);
+    WRITER_PUSH(w, WRITER_STATE_NUMBER);
+    WRITER_PUSH(w, WRITER_STATE_NUMBER_START);
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+static inline bool
+jiffy_writer_write_number_byte(
+  jiffy_writer_t * const w,
+  const uint8_t byte
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_NUMBER_START:
+    switch (byte) {
+    case '+':
+    case '-':
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_AFTER_SIGN);
+      break;
+    case '0':
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_AFTER_LEADING_ZERO);
+      break;
+    CASE_NONZERO_NUMBER
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_INT);
+      break;
+    default:
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case WRITER_STATE_NUMBER_AFTER_SIGN:
+    switch (byte) {
+    case '0':
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_AFTER_LEADING_ZERO);
+      break;
+    CASE_NONZERO_NUMBER
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_INT);
+      break;
+    default:
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case WRITER_STATE_NUMBER_AFTER_LEADING_ZERO:
+    switch (byte) {
+    case '.':
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_FRAC);
+      break;
+    case 'e':
+    case 'E':
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_EXP_START);
+      break;
+    default:
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case WRITER_STATE_NUMBER_INT:
+    switch (byte) {
+    CASE_NUMBER
+      WRITER_WRITE(w, &byte, 1);
+      break;
+    case '.':
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_AFTER_DOT);
+      break;
+    case 'e':
+    case 'E':
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_EXP_START);
+      break;
+    default:
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case WRITER_STATE_NUMBER_AFTER_DOT:
+    switch (byte) {
+    CASE_NUMBER
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_FRAC);
+      break;
+    default:
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case WRITER_STATE_NUMBER_FRAC:
+    switch (byte) {
+    CASE_NUMBER
+      WRITER_WRITE(w, &byte, 1);
+      break;
+    case 'e':
+    case 'E':
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_EXP_START);
+      break;
+    default:
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case WRITER_STATE_NUMBER_EXP_START:
+    switch (byte) {
+    CASE_NUMBER
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_EXP);
+      break;
+    case '+':
+    case '-':
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_EXP_AFTER_SIGN);
+      break;
+    default:
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case WRITER_STATE_NUMBER_EXP_AFTER_SIGN:
+    switch (byte) {
+    CASE_NONZERO_NUMBER
+      WRITER_WRITE(w, &byte, 1);
+      WRITER_SWAP(w, WRITER_STATE_NUMBER_EXP);
+      break;
+    default:
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case WRITER_STATE_NUMBER_EXP:
+    switch (byte) {
+    CASE_NUMBER
+      WRITER_WRITE(w, &byte, 1);
+      break;
+    default:
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_write_number_data(
+  jiffy_writer_t * const w,
+  const void * const ptr,
+  size_t len
+) {
+  const uint8_t * const buf = ptr;
+
+  for (size_t i = 0; i < len; i++) {
+    if (!jiffy_writer_write_number_byte(w, buf[i])) {
+      return false;
+    }
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_write_number_end(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_NUMBER_AFTER_LEADING_ZERO:
+  case WRITER_STATE_NUMBER_INT:
+  case WRITER_STATE_NUMBER_FRAC:
+    WRITER_POP(w);
+    WRITER_POP(w);
+
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_write_number_from_string(
+  jiffy_writer_t * const w,
+  const void * const ptr,
+  const size_t len
+) {
+  const uint8_t * const buf = ptr;
+
+  return (
+    jiffy_writer_write_number_start(w) &&
+    jiffy_writer_write_number_data(w, buf, len) &&
+    jiffy_writer_write_number_end(w)
+  );
 }

@@ -660,20 +660,40 @@ _Bool jiffy_writer_write_false(
   jiffy_writer_t * const w
 );
 
-_Bool jiffy_writer_object_start(
+_Bool jiffy_writer_write_object_start(
   jiffy_writer_t * const w
 );
 
-_Bool jiffy_writer_object_end(
+_Bool jiffy_writer_write_object_end(
   jiffy_writer_t * const w
 );
 
-_Bool jiffy_writer_array_start(
+_Bool jiffy_writer_write_array_start(
   jiffy_writer_t * const w
 );
 
-_Bool jiffy_writer_array_end(
+_Bool jiffy_writer_write_array_end(
   jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_write_number_start(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_write_number_data(
+  jiffy_writer_t * const w,
+  const void * const,
+  const size_t
+);
+
+_Bool jiffy_writer_write_number_end(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_write_number_from_string(
+  jiffy_writer_t * const w,
+  const void * const,
+  const size_t
 );
 
 #ifdef __cplusplus
