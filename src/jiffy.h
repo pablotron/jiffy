@@ -690,7 +690,7 @@ _Bool jiffy_writer_write_number_end(
   jiffy_writer_t * const w
 );
 
-_Bool jiffy_writer_write_number_from_string(
+_Bool jiffy_writer_write_number_from_buffer(
   jiffy_writer_t * const w,
   const void * const,
   const size_t

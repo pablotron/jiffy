@@ -2026,7 +2026,6 @@ jiffy_tree_free(
   JIFFY_DEF_WRITER_STATE(ARRAY), \
   JIFFY_DEF_WRITER_STATE(ARRAY_AFTER_VALUE), \
   JIFFY_DEF_WRITER_STATE(OBJECT), \
-  JIFFY_DEF_WRITER_STATE(OBJECT_KEY), \
   JIFFY_DEF_WRITER_STATE(OBJECT_VALUE), \
   JIFFY_DEF_WRITER_STATE(OBJECT_AFTER_VALUE), \
   JIFFY_DEF_WRITER_STATE(LAST),
@@ -2320,43 +2319,45 @@ jiffy_writer_write_array_end(
   return true;
 }
 
-bool
-jiffy_writer_write_object_key_start(
-  jiffy_writer_t * const w
-) {
-  switch (WRITER_GET_STATE(w)) {
-  case WRITER_STATE_OBJECT:
-    WRITER_PUSH(w, WRITER_STATE_OBJECT_KEY);
-    WRITER_WRITE(w, "\"", 1);
-    break;
-  case WRITER_STATE_OBJECT_AFTER_VALUE:
-    WRITER_WRITE(w, ",\"", 2);
-    WRITER_SWAP(w, WRITER_STATE_OBJECT_KEY);
-    break;
-  default:
-    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
-  }
-
-  // return success
-  return true;
-}
-
-bool
-jiffy_writer_write_object_key_end(
-  jiffy_writer_t * const w
-) {
-  switch (WRITER_GET_STATE(w)) {
-  case WRITER_STATE_OBJECT_KEY:
-    WRITER_WRITE(w, "\":", 2);
-    WRITER_SWAP(w, WRITER_STATE_OBJECT_VALUE);
-    break;
-  default:
-    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
-  }
-
-  // return success
-  return true;
-}
+/* 
+ * bool
+ * jiffy_writer_write_object_key_start(
+ *   jiffy_writer_t * const w
+ * ) {
+ *   switch (WRITER_GET_STATE(w)) {
+ *   case WRITER_STATE_OBJECT:
+ *     WRITER_PUSH(w, WRITER_STATE_OBJECT_KEY);
+ *     WRITER_WRITE(w, "\"", 1);
+ *     break;
+ *   case WRITER_STATE_OBJECT_AFTER_VALUE:
+ *     WRITER_WRITE(w, ",\"", 2);
+ *     WRITER_SWAP(w, WRITER_STATE_OBJECT_KEY);
+ *     break;
+ *   default:
+ *     WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+ *   }
+ * 
+ *   // return success
+ *   return true;
+ * }
+ * 
+ * bool
+ * jiffy_writer_write_object_key_end(
+ *   jiffy_writer_t * const w
+ * ) {
+ *   switch (WRITER_GET_STATE(w)) {
+ *   case WRITER_STATE_OBJECT_KEY:
+ *     WRITER_WRITE(w, "\":", 2);
+ *     WRITER_SWAP(w, WRITER_STATE_OBJECT_VALUE);
+ *     break;
+ *   default:
+ *     WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+ *   }
+ * 
+ *   // return success
+ *   return true;
+ * }
+ */ 
 
 bool
 jiffy_writer_write_number_start(
@@ -2567,7 +2568,7 @@ jiffy_writer_write_number_end(
 }
 
 bool
-jiffy_writer_write_number_from_string(
+jiffy_writer_write_number_from_buffer(
   jiffy_writer_t * const w,
   const void * const ptr,
   const size_t len
@@ -2578,5 +2579,137 @@ jiffy_writer_write_number_from_string(
     jiffy_writer_write_number_start(w) &&
     jiffy_writer_write_number_data(w, buf, len) &&
     jiffy_writer_write_number_end(w)
+  );
+}
+
+bool
+jiffy_writer_write_string_start(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_INIT:
+  case WRITER_STATE_OBJECT_VALUE:
+    WRITER_WRITE(w, "\"", 1);
+    WRITER_PUSH(w, WRITER_STATE_STRING);
+    break;
+  case WRITER_STATE_ARRAY_AFTER_VALUE:
+    WRITER_WRITE(w, ",\"", 2);
+    WRITER_PUSH(w, WRITER_STATE_STRING);
+    break;
+  case WRITER_STATE_OBJECT:
+    WRITER_WRITE(w, "\"", 1);
+    WRITER_PUSH(w, WRITER_STATE_STRING);
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+static bool
+jiffy_writer_write_string_byte(
+  jiffy_writer_t * const w,
+  const uint8_t byte
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_STRING:
+    switch (byte) {
+    case '\0':
+      WRITER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+      break;
+    case '\\':
+      WRITER_WRITE(w, "\\\\", 2);
+      break;
+    case '/':
+      WRITER_WRITE(w, "\\/", 2);
+      break;
+    case '\"':
+      WRITER_WRITE(w, "\\\"", 2);
+      break;
+      break;
+    case '\n':
+      WRITER_WRITE(w, "\\n", 2);
+      break;
+    case '\r':
+      WRITER_WRITE(w, "\\r", 2);
+      break;
+    case '\t':
+      WRITER_WRITE(w, "\\t", 2);
+      break;
+    case '\v':
+      WRITER_WRITE(w, "\\v", 2);
+      break;
+    case '\f':
+      WRITER_WRITE(w, "\\f", 2);
+      break;
+    case '\b':
+      WRITER_WRITE(w, "\\b", 2);
+      break;
+    default:
+      WRITER_WRITE(w, &byte, 1);
+    }
+
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_write_string_data(
+  jiffy_writer_t * const w,
+  const void * const ptr,
+  const size_t len
+) {
+  const uint8_t * const buf = ptr;
+
+  for (size_t i = 0; i < len; i++) {
+    if (!jiffy_writer_write_string_byte(w, buf[i])) {
+      return false;
+    }
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_write_string_end(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_STRING:
+    WRITER_WRITE(w, "\"", 1);
+    WRITER_POP(w);
+
+    if (WRITER_GET_STATE(w) == WRITER_STATE_OBJECT) {
+      WRITER_WRITE(w, ":", 1);
+      WRITER_PUSH(w, WRITER_STATE_OBJECT_VALUE);
+    }
+
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_write_string_from_buffer(
+  jiffy_writer_t * const w,
+  const void * const ptr,
+  const size_t len
+) {
+  return (
+    jiffy_writer_write_string_start(w) &&
+    jiffy_writer_write_string_data(w, ptr, len) &&
+    jiffy_writer_write_string_end(w)
   );
 }
