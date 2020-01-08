@@ -612,6 +612,70 @@ void jiffy_tree_free(
   jiffy_tree_t * const
 );
 
+/**
+ * Writer state.
+ *
+ * Note: In memory-constraint environments you can switch this from a
+ * uint32_t to a uint8_t to save on space.  You may pay a speed penalty
+ * on architectures which do not allow unaligned access (e.g., ARM).
+ */
+typedef uint32_t jiffy_writer_state_t;
+
+// forward declaration
+typedef struct jiffy_writer_t_ jiffy_writer_t;
+
+typedef struct {
+  void (*on_write)(const jiffy_writer_t *, const void *, const size_t);
+  void (*on_fini)(const jiffy_writer_t *);
+  void (*on_error)(const jiffy_writer_t *, const jiffy_err_t);
+} jiffy_writer_cbs_t;
+
+struct jiffy_writer_t_ {
+  const jiffy_writer_cbs_t * cbs;
+
+  jiffy_writer_state_t *stack_ptr;
+  size_t stack_len;
+  size_t stack_pos;
+
+  void * user_data;
+};
+
+_Bool jiffy_writer_init(
+  jiffy_writer_t * const,
+  const jiffy_writer_cbs_t *,
+  jiffy_writer_state_t * const,
+  const size_t,
+  void *
+);
+
+_Bool jiffy_writer_write_null(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_write_true(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_write_false(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_object_start(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_object_end(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_array_start(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_array_end(
+  jiffy_writer_t * const w
+);
+
 #ifdef __cplusplus
 };
 #endif // __cplusplus

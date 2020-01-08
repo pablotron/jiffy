@@ -2005,8 +2005,6 @@ jiffy_tree_free(
   }
 }
 
-typedef uint32_t jiffy_writer_state_t;
-
 /**
  * Writer states.
  */
@@ -2047,27 +2045,9 @@ const char *
 jiffy_writer_state_to_s(
   const jiffy_writer_state_t state
 ) {
-  const size_t ofs = (state < PARSER_STATE_LAST) ? state : PARSER_STATE_LAST;
+  const size_t ofs = (state < WRITER_STATE_LAST) ? state : WRITER_STATE_LAST;
   return JIFFY_WRITER_STATES[ofs];
 }
-
-typedef struct jiffy_writer_t_ jiffy_writer_t;
-
-typedef struct {
-  void (*on_write)(const jiffy_writer_t *, const void *, const size_t);
-  void (*on_fini)(const jiffy_writer_t *);
-  void (*on_error)(const jiffy_writer_t *, const jiffy_err_t);
-} jiffy_writer_cbs_t;
-
-struct jiffy_writer_t_ {
-  const jiffy_writer_cbs_t * cbs;
-
-  jiffy_writer_state_t *stack_ptr;
-  size_t stack_len;
-  size_t stack_pos;
-
-  void * user_data;
-};
 
 void *
 jiffy_writer_get_user_data(
@@ -2083,7 +2063,7 @@ jiffy_writer_get_user_data(
 #define WRITER_SWAP(w, state) (w)->stack_ptr[(w)->stack_pos] = (state)
 
 // invoke on_error callback with error code, set the state to
-// PARSER_STATE_FAIL, and then return false.
+// WRITER_STATE_FAIL, and then return false.
 #define WRITER_FAIL(w, err) do { \
   if ((w)->cbs && (w)->cbs->on_error) { \
     (w)->cbs->on_error((w), err); \
