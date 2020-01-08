@@ -696,6 +696,26 @@ _Bool jiffy_writer_write_number_from_buffer(
   const size_t
 );
 
+_Bool jiffy_writer_write_string_start(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_write_string_data(
+  jiffy_writer_t * const w,
+  const void * const,
+  const size_t
+);
+
+_Bool jiffy_writer_write_string_end(
+  jiffy_writer_t * const w
+);
+
+_Bool jiffy_writer_write_string_from_buffer(
+  jiffy_writer_t * const w,
+  const void * const,
+  const size_t
+);
+
 #ifdef __cplusplus
 };
 #endif // __cplusplus

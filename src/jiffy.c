@@ -2319,46 +2319,6 @@ jiffy_writer_write_array_end(
   return true;
 }
 
-/* 
- * bool
- * jiffy_writer_write_object_key_start(
- *   jiffy_writer_t * const w
- * ) {
- *   switch (WRITER_GET_STATE(w)) {
- *   case WRITER_STATE_OBJECT:
- *     WRITER_PUSH(w, WRITER_STATE_OBJECT_KEY);
- *     WRITER_WRITE(w, "\"", 1);
- *     break;
- *   case WRITER_STATE_OBJECT_AFTER_VALUE:
- *     WRITER_WRITE(w, ",\"", 2);
- *     WRITER_SWAP(w, WRITER_STATE_OBJECT_KEY);
- *     break;
- *   default:
- *     WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
- *   }
- * 
- *   // return success
- *   return true;
- * }
- * 
- * bool
- * jiffy_writer_write_object_key_end(
- *   jiffy_writer_t * const w
- * ) {
- *   switch (WRITER_GET_STATE(w)) {
- *   case WRITER_STATE_OBJECT_KEY:
- *     WRITER_WRITE(w, "\":", 2);
- *     WRITER_SWAP(w, WRITER_STATE_OBJECT_VALUE);
- *     break;
- *   default:
- *     WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
- *   }
- * 
- *   // return success
- *   return true;
- * }
- */ 
-
 bool
 jiffy_writer_write_number_start(
   jiffy_writer_t * const w
