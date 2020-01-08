@@ -2057,13 +2057,6 @@ jiffy_writer_state_to_s(
   return JIFFY_WRITER_STATES[ofs];
 }
 
-void *
-jiffy_writer_get_user_data(
-  const jiffy_writer_t * const w
-) {
-  return w->user_data;
-}
-
 // get the current writer state
 #define WRITER_GET_STATE(w) ((w)->stack_ptr[(w)->stack_pos])
 
@@ -2181,6 +2174,13 @@ jiffy_writer_init(
 
   // return success
   return true;
+}
+
+void *
+jiffy_writer_get_user_data(
+  const jiffy_writer_t * const w
+) {
+  return w->user_data;
 }
 
 static inline bool
