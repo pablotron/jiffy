@@ -120,72 +120,72 @@ jiffy_warning_to_s(
 /**
  * Parser states.
  */
-#define JIFFY_STATE_LIST \
-  JIFFY_DEF_STATE(INIT), \
-  JIFFY_DEF_STATE(DONE), \
-  JIFFY_DEF_STATE(FAIL), \
-  JIFFY_DEF_STATE(BOM_UTF16_X), \
-  JIFFY_DEF_STATE(BOM_UTF8_X), \
-  JIFFY_DEF_STATE(BOM_UTF8_XX), \
-  JIFFY_DEF_STATE(VALUE), \
-  JIFFY_DEF_STATE(LIT_N), \
-  JIFFY_DEF_STATE(LIT_NU), \
-  JIFFY_DEF_STATE(LIT_NUL), \
-  JIFFY_DEF_STATE(LIT_T), \
-  JIFFY_DEF_STATE(LIT_TR), \
-  JIFFY_DEF_STATE(LIT_TRU), \
-  JIFFY_DEF_STATE(LIT_F), \
-  JIFFY_DEF_STATE(LIT_FA), \
-  JIFFY_DEF_STATE(LIT_FAL), \
-  JIFFY_DEF_STATE(LIT_FALS), \
-  JIFFY_DEF_STATE(NUMBER_AFTER_SIGN), \
-  JIFFY_DEF_STATE(NUMBER_AFTER_LEADING_ZERO), \
-  JIFFY_DEF_STATE(NUMBER_INT), \
-  JIFFY_DEF_STATE(NUMBER_AFTER_DOT), \
-  JIFFY_DEF_STATE(NUMBER_FRAC), \
-  JIFFY_DEF_STATE(NUMBER_AFTER_EXP), \
-  JIFFY_DEF_STATE(NUMBER_AFTER_EXP_SIGN), \
-  JIFFY_DEF_STATE(NUMBER_EXP_NUM), \
-  JIFFY_DEF_STATE(STRING), \
-  JIFFY_DEF_STATE(STRING_ESC), \
-  JIFFY_DEF_STATE(STRING_UNICODE), \
-  JIFFY_DEF_STATE(STRING_UNICODE_X), \
-  JIFFY_DEF_STATE(STRING_UNICODE_XX), \
-  JIFFY_DEF_STATE(STRING_UNICODE_XXX), \
-  JIFFY_DEF_STATE(OBJECT_START), \
-  JIFFY_DEF_STATE(ARRAY_START), \
-  JIFFY_DEF_STATE(ARRAY_ELEMENT), \
-  JIFFY_DEF_STATE(OBJECT_KEY), \
-  JIFFY_DEF_STATE(AFTER_OBJECT_KEY), \
-  JIFFY_DEF_STATE(BEFORE_OBJECT_KEY), \
-  JIFFY_DEF_STATE(AFTER_OBJECT_VALUE), \
-  JIFFY_DEF_STATE(LAST),
+#define JIFFY_PARSER_STATE_LIST \
+  JIFFY_DEF_PARSER_STATE(INIT), \
+  JIFFY_DEF_PARSER_STATE(DONE), \
+  JIFFY_DEF_PARSER_STATE(FAIL), \
+  JIFFY_DEF_PARSER_STATE(BOM_UTF16_X), \
+  JIFFY_DEF_PARSER_STATE(BOM_UTF8_X), \
+  JIFFY_DEF_PARSER_STATE(BOM_UTF8_XX), \
+  JIFFY_DEF_PARSER_STATE(VALUE), \
+  JIFFY_DEF_PARSER_STATE(LIT_N), \
+  JIFFY_DEF_PARSER_STATE(LIT_NU), \
+  JIFFY_DEF_PARSER_STATE(LIT_NUL), \
+  JIFFY_DEF_PARSER_STATE(LIT_T), \
+  JIFFY_DEF_PARSER_STATE(LIT_TR), \
+  JIFFY_DEF_PARSER_STATE(LIT_TRU), \
+  JIFFY_DEF_PARSER_STATE(LIT_F), \
+  JIFFY_DEF_PARSER_STATE(LIT_FA), \
+  JIFFY_DEF_PARSER_STATE(LIT_FAL), \
+  JIFFY_DEF_PARSER_STATE(LIT_FALS), \
+  JIFFY_DEF_PARSER_STATE(NUMBER_AFTER_SIGN), \
+  JIFFY_DEF_PARSER_STATE(NUMBER_AFTER_LEADING_ZERO), \
+  JIFFY_DEF_PARSER_STATE(NUMBER_INT), \
+  JIFFY_DEF_PARSER_STATE(NUMBER_AFTER_DOT), \
+  JIFFY_DEF_PARSER_STATE(NUMBER_FRAC), \
+  JIFFY_DEF_PARSER_STATE(NUMBER_AFTER_EXP), \
+  JIFFY_DEF_PARSER_STATE(NUMBER_AFTER_EXP_SIGN), \
+  JIFFY_DEF_PARSER_STATE(NUMBER_EXP_NUM), \
+  JIFFY_DEF_PARSER_STATE(STRING), \
+  JIFFY_DEF_PARSER_STATE(STRING_ESC), \
+  JIFFY_DEF_PARSER_STATE(STRING_UNICODE), \
+  JIFFY_DEF_PARSER_STATE(STRING_UNICODE_X), \
+  JIFFY_DEF_PARSER_STATE(STRING_UNICODE_XX), \
+  JIFFY_DEF_PARSER_STATE(STRING_UNICODE_XXX), \
+  JIFFY_DEF_PARSER_STATE(OBJECT_START), \
+  JIFFY_DEF_PARSER_STATE(ARRAY_START), \
+  JIFFY_DEF_PARSER_STATE(ARRAY_ELEMENT), \
+  JIFFY_DEF_PARSER_STATE(OBJECT_KEY), \
+  JIFFY_DEF_PARSER_STATE(AFTER_OBJECT_KEY), \
+  JIFFY_DEF_PARSER_STATE(BEFORE_OBJECT_KEY), \
+  JIFFY_DEF_PARSER_STATE(AFTER_OBJECT_VALUE), \
+  JIFFY_DEF_PARSER_STATE(LAST),
 
 /**
  * Parser states.
  */
 enum jiffy_parser_states {
-#define JIFFY_DEF_STATE(a) STATE_##a
-JIFFY_STATE_LIST
-#undef JIFFY_DEF_STATE
+#define JIFFY_DEF_PARSER_STATE(a) PARSER_STATE_##a
+JIFFY_PARSER_STATE_LIST
+#undef JIFFY_DEF_PARSER_STATE
 };
 
 /**
  * Parser state strings.  Used by jiffy_parser_state_to_s().
  */
 static const char *
-JIFFY_STATES[] = {
-#define JIFFY_DEF_STATE(a) "STATE_" # a
-JIFFY_STATE_LIST
-#undef JIFFY_DEF_STATE
+JIFFY_PARSER_STATES[] = {
+#define JIFFY_DEF_PARSER_STATE(a) "PARSER_STATE_" # a
+JIFFY_PARSER_STATE_LIST
+#undef JIFFY_DEF_PARSER_STATE
 };
 
 const char *
 jiffy_parser_state_to_s(
   const jiffy_parser_state_t state
 ) {
-  const size_t ofs = (state < STATE_LAST) ? state : STATE_LAST;
-  return JIFFY_STATES[ofs];
+  const size_t ofs = (state < PARSER_STATE_LAST) ? state : PARSER_STATE_LAST;
+  return JIFFY_PARSER_STATES[ofs];
 }
 
 // get the current state
@@ -195,12 +195,12 @@ jiffy_parser_state_to_s(
 #define SWAP(p, state) (p)->stack_ptr[(p)->stack_pos] = (state)
 
 // invoke on_error callback with error code, set the state to
-// STATE_FAIL, and then return false.
+// PARSER_STATE_FAIL, and then return false.
 #define FAIL(p, err) do { \
   if ((p)->cbs && (p)->cbs->on_error) { \
     (p)->cbs->on_error((p), err); \
   } \
-  SWAP((p), STATE_FAIL); \
+  SWAP((p), PARSER_STATE_FAIL); \
   return false; \
 } while (0)
 
@@ -251,7 +251,7 @@ jiffy_parser_init(
   p->stack_pos = 0;
 
   // init state
-  SWAP(p, STATE_INIT);
+  SWAP(p, PARSER_STATE_INIT);
 
   // clear number of bytes read
   p->num_bytes = 0;
@@ -316,8 +316,8 @@ jiffy_parser_pop_state(
   p->stack_pos--;
 
   // check for done
-  if (!p->stack_pos && GET_STATE(p) == STATE_INIT) {
-    SWAP(p, STATE_DONE);
+  if (!p->stack_pos && GET_STATE(p) == PARSER_STATE_INIT) {
+    SWAP(p, PARSER_STATE_DONE);
   }
 
   // return success
@@ -381,9 +381,9 @@ jiffy_parser_push_byte(
 ) {
 retry:
   switch (GET_STATE(p)) {
-  case STATE_FAIL:
+  case PARSER_STATE_FAIL:
     return false;
-  case STATE_DONE:
+  case PARSER_STATE_DONE:
     switch (byte) {
     CASE_WHITESPACE
       // ignore
@@ -393,42 +393,42 @@ retry:
     }
 
     break;
-  case STATE_INIT:
+  case PARSER_STATE_INIT:
     switch (byte) {
     case 0xFE:
-      PUSH(p, STATE_BOM_UTF16_X);
+      PUSH(p, PARSER_STATE_BOM_UTF16_X);
       break;
     case 0xEF:
-      PUSH(p, STATE_BOM_UTF8_X);
+      PUSH(p, PARSER_STATE_BOM_UTF8_X);
       break;
     default:
-      PUSH(p, STATE_VALUE);
+      PUSH(p, PARSER_STATE_VALUE);
       goto retry;
     }
 
     break;
-  case STATE_BOM_UTF16_X:
+  case PARSER_STATE_BOM_UTF16_X:
     switch (byte) {
     case 0xFF:
       EMIT(p, on_warning, JIFFY_WARNING_UTF16_BOM);
-      SWAP(p, STATE_VALUE);
+      SWAP(p, PARSER_STATE_VALUE);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_UTF16_BOM);
     }
 
     break;
-  case STATE_BOM_UTF8_X:
+  case PARSER_STATE_BOM_UTF8_X:
     switch (byte) {
     case 0xBB:
-      SWAP(p, STATE_BOM_UTF8_XX);
+      SWAP(p, PARSER_STATE_BOM_UTF8_XX);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_UTF8_BOM);
     }
 
     break;
-  case STATE_BOM_UTF8_XX:
+  case PARSER_STATE_BOM_UTF8_XX:
     switch (byte) {
     case 0xBF:
       EMIT(p, on_warning, JIFFY_WARNING_UTF8_BOM);
@@ -439,26 +439,26 @@ retry:
     }
 
     break;
-  case STATE_VALUE:
+  case PARSER_STATE_VALUE:
     switch (byte) {
     CASE_WHITESPACE
       // ignore
       break;
     case 'n':
-      SWAP(p, STATE_LIT_N);
+      SWAP(p, PARSER_STATE_LIT_N);
       break;
     case 't':
-      SWAP(p, STATE_LIT_T);
+      SWAP(p, PARSER_STATE_LIT_T);
       break;
     case 'f':
-      SWAP(p, STATE_LIT_F);
+      SWAP(p, PARSER_STATE_LIT_F);
       break;
     case '+':
     case '-':
       // clear number flags
       p->v_num.flags = 0;
 
-      SWAP(p, STATE_NUMBER_AFTER_SIGN);
+      SWAP(p, PARSER_STATE_NUMBER_AFTER_SIGN);
       FIRE(p, on_number_start);
       EMIT(p, on_number_byte, byte);
 
@@ -467,7 +467,7 @@ retry:
       // clear number flags
       p->v_num.flags = 0;
 
-      SWAP(p, STATE_NUMBER_AFTER_LEADING_ZERO);
+      SWAP(p, PARSER_STATE_NUMBER_AFTER_LEADING_ZERO);
       FIRE(p, on_number_start);
       EMIT(p, on_number_byte, byte);
 
@@ -476,21 +476,21 @@ retry:
       // clear number flags
       p->v_num.flags = 0;
 
-      SWAP(p, STATE_NUMBER_INT);
+      SWAP(p, PARSER_STATE_NUMBER_INT);
       FIRE(p, on_number_start);
       EMIT(p, on_number_byte, byte);
 
       break;
     case '{':
-      SWAP(p, STATE_OBJECT_START);
+      SWAP(p, PARSER_STATE_OBJECT_START);
       FIRE(p, on_object_start);
       break;
     case '[':
-      SWAP(p, STATE_ARRAY_START);
+      SWAP(p, PARSER_STATE_ARRAY_START);
       FIRE(p, on_array_start);
       break;
     case '"':
-      SWAP(p, STATE_STRING);
+      SWAP(p, PARSER_STATE_STRING);
       FIRE(p, on_string_start);
       break;
     default:
@@ -498,23 +498,23 @@ retry:
     }
 
     break;
-  case STATE_LIT_N:
+  case PARSER_STATE_LIT_N:
     if (byte == 'u') {
-      SWAP(p, STATE_LIT_NU);
+      SWAP(p, PARSER_STATE_LIT_NU);
     } else {
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     }
 
     break;
-  case STATE_LIT_NU:
+  case PARSER_STATE_LIT_NU:
     if (byte == 'l') {
-      SWAP(p, STATE_LIT_NUL);
+      SWAP(p, PARSER_STATE_LIT_NUL);
     } else {
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     }
 
     break;
-  case STATE_LIT_NUL:
+  case PARSER_STATE_LIT_NUL:
     if (byte == 'l') {
       FIRE(p, on_null);
       POP(p);
@@ -523,23 +523,23 @@ retry:
     }
 
     break;
-  case STATE_LIT_T:
+  case PARSER_STATE_LIT_T:
     if (byte == 'r') {
-      SWAP(p, STATE_LIT_TR);
+      SWAP(p, PARSER_STATE_LIT_TR);
     } else {
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     }
 
     break;
-  case STATE_LIT_TR:
+  case PARSER_STATE_LIT_TR:
     if (byte == 'u') {
-      SWAP(p, STATE_LIT_TRU);
+      SWAP(p, PARSER_STATE_LIT_TRU);
     } else {
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     }
 
     break;
-  case STATE_LIT_TRU:
+  case PARSER_STATE_LIT_TRU:
     if (byte == 'e') {
       FIRE(p, on_true);
       POP(p);
@@ -548,31 +548,31 @@ retry:
     }
 
     break;
-  case STATE_LIT_F:
+  case PARSER_STATE_LIT_F:
     if (byte == 'a') {
-      SWAP(p, STATE_LIT_FA);
+      SWAP(p, PARSER_STATE_LIT_FA);
     } else {
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     }
 
     break;
-  case STATE_LIT_FA:
+  case PARSER_STATE_LIT_FA:
     if (byte == 'l') {
-      SWAP(p, STATE_LIT_FAL);
+      SWAP(p, PARSER_STATE_LIT_FAL);
     } else {
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     }
 
     break;
-  case STATE_LIT_FAL:
+  case PARSER_STATE_LIT_FAL:
     if (byte == 's') {
-      SWAP(p, STATE_LIT_FALS);
+      SWAP(p, PARSER_STATE_LIT_FALS);
     } else {
       FAIL(p, JIFFY_ERR_BAD_BYTE);
     }
 
     break;
-  case STATE_LIT_FALS:
+  case PARSER_STATE_LIT_FALS:
     if (byte == 'e') {
       FIRE(p, on_false);
       POP(p);
@@ -581,14 +581,14 @@ retry:
     }
 
     break;
-  case STATE_NUMBER_AFTER_SIGN:
+  case PARSER_STATE_NUMBER_AFTER_SIGN:
     switch (byte) {
     case '0':
-      SWAP(p, STATE_NUMBER_AFTER_LEADING_ZERO);
+      SWAP(p, PARSER_STATE_NUMBER_AFTER_LEADING_ZERO);
       EMIT(p, on_number_byte, byte);
       break;
     CASE_NONZERO_NUMBER
-      SWAP(p, STATE_NUMBER_INT);
+      SWAP(p, PARSER_STATE_NUMBER_INT);
       EMIT(p, on_number_byte, byte);
       break;
     default:
@@ -596,18 +596,18 @@ retry:
     }
 
     break;
-  case STATE_NUMBER_AFTER_LEADING_ZERO:
+  case PARSER_STATE_NUMBER_AFTER_LEADING_ZERO:
     if (byte == '.') {
       // set fraction flag
       p->v_num.flags |= JIFFY_NUMBER_FLAG_FRAC;
 
-      SWAP(p, STATE_NUMBER_AFTER_DOT);
+      SWAP(p, PARSER_STATE_NUMBER_AFTER_DOT);
       EMIT(p, on_number_byte, byte);
     } else if (byte == 'e' || byte == 'E') {
       // set exponent flag
       p->v_num.flags |= JIFFY_NUMBER_FLAG_EXP;
 
-      SWAP(p, STATE_NUMBER_AFTER_EXP);
+      SWAP(p, PARSER_STATE_NUMBER_AFTER_EXP);
       EMIT(p, on_number_byte, byte);
     } else {
       EMIT_FLAGS(p, on_number_flags, p->v_num.flags);
@@ -617,7 +617,7 @@ retry:
     }
 
     break;
-  case STATE_NUMBER_INT:
+  case PARSER_STATE_NUMBER_INT:
     switch (byte) {
     CASE_NUMBER
       EMIT(p, on_number_byte, byte);
@@ -626,7 +626,7 @@ retry:
       // set fraction flag
       p->v_num.flags |= JIFFY_NUMBER_FLAG_FRAC;
 
-      SWAP(p, STATE_NUMBER_AFTER_DOT);
+      SWAP(p, PARSER_STATE_NUMBER_AFTER_DOT);
       EMIT(p, on_number_byte, byte);
       break;
     case 'e':
@@ -634,7 +634,7 @@ retry:
       // set exponent flag
       p->v_num.flags |= JIFFY_NUMBER_FLAG_EXP;
 
-      SWAP(p, STATE_NUMBER_AFTER_EXP);
+      SWAP(p, PARSER_STATE_NUMBER_AFTER_EXP);
       EMIT(p, on_number_byte, byte);
       break;
     default:
@@ -645,13 +645,13 @@ retry:
     }
 
     break;
-  case STATE_NUMBER_AFTER_DOT:
+  case PARSER_STATE_NUMBER_AFTER_DOT:
     switch (byte) {
     CASE_NUMBER
       // set fraction flag
       p->v_num.flags |= JIFFY_NUMBER_FLAG_FRAC;
 
-      SWAP(p, STATE_NUMBER_FRAC);
+      SWAP(p, PARSER_STATE_NUMBER_FRAC);
       EMIT(p, on_number_byte, byte);
 
       break;
@@ -660,7 +660,7 @@ retry:
     }
 
     break;
-  case STATE_NUMBER_FRAC:
+  case PARSER_STATE_NUMBER_FRAC:
     switch (byte) {
     CASE_NUMBER
       EMIT(p, on_number_byte, byte);
@@ -670,7 +670,7 @@ retry:
       // set exponent flag
       p->v_num.flags |= JIFFY_NUMBER_FLAG_EXP;
 
-      SWAP(p, STATE_NUMBER_AFTER_EXP);
+      SWAP(p, PARSER_STATE_NUMBER_AFTER_EXP);
       EMIT(p, on_number_byte, byte);
       break;
     default:
@@ -681,15 +681,15 @@ retry:
     }
 
     break;
-  case STATE_NUMBER_AFTER_EXP:
+  case PARSER_STATE_NUMBER_AFTER_EXP:
     switch (byte) {
     case '+':
     case '-':
-      SWAP(p, STATE_NUMBER_AFTER_EXP_SIGN);
+      SWAP(p, PARSER_STATE_NUMBER_AFTER_EXP_SIGN);
       EMIT(p, on_number_byte, byte);
       break;
     CASE_NUMBER
-      SWAP(p, STATE_NUMBER_EXP_NUM);
+      SWAP(p, PARSER_STATE_NUMBER_EXP_NUM);
       EMIT(p, on_number_byte, byte);
       break;
     default:
@@ -697,10 +697,10 @@ retry:
     }
 
     break;
-  case STATE_NUMBER_AFTER_EXP_SIGN:
+  case PARSER_STATE_NUMBER_AFTER_EXP_SIGN:
     switch (byte) {
     CASE_NUMBER
-      SWAP(p, STATE_NUMBER_EXP_NUM);
+      SWAP(p, PARSER_STATE_NUMBER_EXP_NUM);
       EMIT(p, on_number_byte, byte);
       break;
     default:
@@ -708,7 +708,7 @@ retry:
     }
 
     break;
-  case STATE_NUMBER_EXP_NUM:
+  case PARSER_STATE_NUMBER_EXP_NUM:
     switch (byte) {
     CASE_NUMBER
       EMIT(p, on_number_byte, byte);
@@ -721,14 +721,14 @@ retry:
     }
 
     break;
-  case STATE_STRING:
+  case PARSER_STATE_STRING:
     switch (byte) {
     case '"':
       FIRE(p, on_string_end);
       POP(p);
       break;
     case '\\':
-      PUSH(p, STATE_STRING_ESC);
+      PUSH(p, PARSER_STATE_STRING_ESC);
       break;
     case 0:
     case '\r':
@@ -739,7 +739,7 @@ retry:
     }
 
     break;
-  case STATE_STRING_ESC:
+  case PARSER_STATE_STRING_ESC:
     switch (byte) {
     case '\\':
       EMIT(p, on_string_byte, '\\');
@@ -779,47 +779,47 @@ retry:
       break;
     case 'u':
       p->v_str.hex = 0;
-      SWAP(p, STATE_STRING_UNICODE);
+      SWAP(p, PARSER_STATE_STRING_UNICODE);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_ESCAPE);
     }
 
     break;
-  case STATE_STRING_UNICODE:
+  case PARSER_STATE_STRING_UNICODE:
     switch (byte) {
     CASE_HEX
       p->v_str.hex = (p->v_str.hex << 4) + nibble(byte);
-      SWAP(p, STATE_STRING_UNICODE_X);
+      SWAP(p, PARSER_STATE_STRING_UNICODE_X);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_UNICODE_ESCAPE);
     }
 
     break;
-  case STATE_STRING_UNICODE_X:
+  case PARSER_STATE_STRING_UNICODE_X:
     switch (byte) {
     CASE_HEX
       p->v_str.hex = (p->v_str.hex << 4) + nibble(byte);
-      SWAP(p, STATE_STRING_UNICODE_XX);
+      SWAP(p, PARSER_STATE_STRING_UNICODE_XX);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_UNICODE_ESCAPE);
     }
 
     break;
-  case STATE_STRING_UNICODE_XX:
+  case PARSER_STATE_STRING_UNICODE_XX:
     switch (byte) {
     CASE_HEX
       p->v_str.hex = (p->v_str.hex << 4) + nibble(byte);
-      SWAP(p, STATE_STRING_UNICODE_XXX);
+      SWAP(p, PARSER_STATE_STRING_UNICODE_XXX);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_UNICODE_ESCAPE);
     }
 
     break;
-  case STATE_STRING_UNICODE_XXX:
+  case PARSER_STATE_STRING_UNICODE_XXX:
     switch (byte) {
     CASE_HEX
       p->v_str.hex = (p->v_str.hex << 4) + nibble(byte);
@@ -833,7 +833,7 @@ retry:
     }
 
     break;
-  case STATE_ARRAY_START:
+  case PARSER_STATE_ARRAY_START:
     switch (byte) {
     CASE_WHITESPACE
       // ignore
@@ -845,14 +845,14 @@ retry:
     case ',':
       FAIL(p, JIFFY_ERR_EXPECTED_ARRAY_ELEMENT);
     default:
-      PUSH(p, STATE_ARRAY_ELEMENT);
-      PUSH(p, STATE_VALUE);
+      PUSH(p, PARSER_STATE_ARRAY_ELEMENT);
+      PUSH(p, PARSER_STATE_VALUE);
       FIRE(p, on_array_element_start);
       goto retry;
     }
 
     break;
-  case STATE_ARRAY_ELEMENT:
+  case PARSER_STATE_ARRAY_ELEMENT:
     switch (byte) {
     CASE_WHITESPACE
       // ignore
@@ -872,7 +872,7 @@ retry:
       FIRE(p, on_array_element_end);
 
       // start element
-      PUSH(p, STATE_VALUE);
+      PUSH(p, PARSER_STATE_VALUE);
       FIRE(p, on_array_element_start);
 
       break;
@@ -881,7 +881,7 @@ retry:
     }
 
     break;
-  case STATE_OBJECT_START:
+  case PARSER_STATE_OBJECT_START:
     switch (byte) {
     CASE_WHITESPACE
       // ignore
@@ -893,8 +893,8 @@ retry:
 
       break;
     case '"':
-      PUSH(p, STATE_OBJECT_KEY);
-      PUSH(p, STATE_STRING);
+      PUSH(p, PARSER_STATE_OBJECT_KEY);
+      PUSH(p, PARSER_STATE_STRING);
       FIRE(p, on_object_key_start);
       FIRE(p, on_string_start);
 
@@ -904,41 +904,41 @@ retry:
     }
 
     break;
-  case STATE_OBJECT_KEY:
+  case PARSER_STATE_OBJECT_KEY:
     switch (byte) {
     CASE_WHITESPACE
       // ignore
       break;
     case ':':
       FIRE(p, on_object_key_end);
-      SWAP(p, STATE_AFTER_OBJECT_KEY);
+      SWAP(p, PARSER_STATE_AFTER_OBJECT_KEY);
       break;
     default:
       FAIL(p, JIFFY_ERR_EXPECTED_COLON);
     }
 
     break;
-  case STATE_AFTER_OBJECT_KEY:
+  case PARSER_STATE_AFTER_OBJECT_KEY:
     switch (byte) {
     CASE_WHITESPACE
       // ignore
       break;
     default:
-      SWAP(p, STATE_AFTER_OBJECT_VALUE);
-      PUSH(p, STATE_VALUE);
+      SWAP(p, PARSER_STATE_AFTER_OBJECT_VALUE);
+      PUSH(p, PARSER_STATE_VALUE);
       FIRE(p, on_object_value_start);
       goto retry;
     }
 
     break;
-  case STATE_AFTER_OBJECT_VALUE:
+  case PARSER_STATE_AFTER_OBJECT_VALUE:
     switch (byte) {
     CASE_WHITESPACE
       // ignore
       break;
     case ',':
       FIRE(p, on_object_value_end);
-      SWAP(p, STATE_BEFORE_OBJECT_KEY);
+      SWAP(p, PARSER_STATE_BEFORE_OBJECT_KEY);
       break;
     case '}':
       FIRE(p, on_object_value_end);
@@ -951,14 +951,14 @@ retry:
     }
 
     break;
-  case STATE_BEFORE_OBJECT_KEY:
+  case PARSER_STATE_BEFORE_OBJECT_KEY:
     switch (byte) {
     CASE_WHITESPACE
       // ignore
       break;
     case '"':
-      SWAP(p, STATE_OBJECT_KEY);
-      PUSH(p, STATE_STRING);
+      SWAP(p, PARSER_STATE_OBJECT_KEY);
+      PUSH(p, PARSER_STATE_STRING);
       FIRE(p, on_object_key_start);
       FIRE(p, on_string_start);
       break;
@@ -1008,7 +1008,7 @@ jiffy_parser_fini(
   }
 
   // check to see if parsing is done
-  if (p->stack_pos || GET_STATE(p) != STATE_DONE) {
+  if (p->stack_pos || GET_STATE(p) != PARSER_STATE_DONE) {
     FAIL(p, JIFFY_ERR_NOT_DONE);
   }
 
@@ -2003,4 +2003,330 @@ jiffy_tree_free(
     // clear value count
     tree->num_vals = 0;
   }
+}
+
+typedef uint32_t jiffy_writer_state_t;
+
+/**
+ * Writer states.
+ */
+#define JIFFY_WRITER_STATE_LIST \
+  JIFFY_DEF_WRITER_STATE(INIT), \
+  JIFFY_DEF_WRITER_STATE(DONE), \
+  JIFFY_DEF_WRITER_STATE(FAIL), \
+  JIFFY_DEF_WRITER_STATE(STRING), \
+  JIFFY_DEF_WRITER_STATE(NUMBER), \
+  JIFFY_DEF_WRITER_STATE(ARRAY), \
+  JIFFY_DEF_WRITER_STATE(ARRAY_AFTER_VALUE), \
+  JIFFY_DEF_WRITER_STATE(OBJECT), \
+  JIFFY_DEF_WRITER_STATE(OBJECT_KEY), \
+  JIFFY_DEF_WRITER_STATE(OBJECT_VALUE), \
+  JIFFY_DEF_WRITER_STATE(OBJECT_AFTER_VALUE), \
+  JIFFY_DEF_WRITER_STATE(LAST),
+
+/**
+ * Writer states.
+ */
+enum jiffy_writer_states {
+#define JIFFY_DEF_WRITER_STATE(a) WRITER_STATE_##a
+JIFFY_WRITER_STATE_LIST
+#undef JIFFY_DEF_WRITER_STATE
+};
+
+/**
+ * Writer state strings.  Used by jiffy_writer_state_to_s().
+ */
+static const char *
+JIFFY_WRITER_STATES[] = {
+#define JIFFY_DEF_WRITER_STATE(a) "WRITER_STATE_" # a
+JIFFY_WRITER_STATE_LIST
+#undef JIFFY_DEF_WRITER_STATE
+};
+
+const char *
+jiffy_writer_state_to_s(
+  const jiffy_writer_state_t state
+) {
+  const size_t ofs = (state < PARSER_STATE_LAST) ? state : PARSER_STATE_LAST;
+  return JIFFY_WRITER_STATES[ofs];
+}
+
+typedef struct jiffy_writer_t_ jiffy_writer_t;
+
+typedef struct {
+  void (*on_write)(const jiffy_writer_t *, const void *, const size_t);
+  void (*on_fini)(const jiffy_writer_t *);
+  void (*on_error)(const jiffy_writer_t *, const jiffy_err_t);
+} jiffy_writer_cbs_t;
+
+struct jiffy_writer_t_ {
+  const jiffy_writer_cbs_t * cbs;
+
+  jiffy_writer_state_t *stack_ptr;
+  size_t stack_len;
+  size_t stack_pos;
+
+  void * user_data;
+};
+
+void *
+jiffy_writer_get_user_data(
+  const jiffy_writer_t * const w
+) {
+  return w->user_data;
+}
+
+// get the current writer state
+#define WRITER_GET_STATE(w) ((w)->stack_ptr[(w)->stack_pos])
+
+// set the current writer state
+#define WRITER_SWAP(w, state) (w)->stack_ptr[(w)->stack_pos] = (state)
+
+// invoke on_error callback with error code, set the state to
+// PARSER_STATE_FAIL, and then return false.
+#define WRITER_FAIL(w, err) do { \
+  if ((w)->cbs && (w)->cbs->on_error) { \
+    (w)->cbs->on_error((w), err); \
+  } \
+  WRITER_SWAP((w), WRITER_STATE_FAIL); \
+  return false; \
+} while (0)
+
+// call given callback, if it is non-NULL
+#define WRITER_FIRE(w, cb_name) do { \
+  if ((w)->cbs && (w)->cbs->cb_name) { \
+    (w)->cbs->cb_name(w); \
+  } \
+} while (0)
+
+// call on_write callback with buffer and length, if it is non-NULL
+#define WRITER_WRITE(w, buf, len) do { \
+  if ((w)->cbs && (w)->cbs->on_write) { \
+    (w)->cbs->on_write(w, (buf), (len)); \
+  } \
+} while (0)
+
+/**
+ * Push writer state.  Returns false on stack overflow.
+ *
+ * Note: this is defined as an inline function rather than a macro to
+ * give the compiler more flexibility in terms of inlining.
+ */
+static inline bool
+jiffy_writer_push_state(
+  jiffy_writer_t * const w,
+  const jiffy_writer_state_t state
+) {
+  if (w->stack_pos < w->stack_len - 1) {
+    w->stack_ptr[++w->stack_pos] = state;
+    return true;
+  } else {
+    WRITER_FAIL(w, JIFFY_ERR_STACK_OVERFLOW);
+  }
+}
+
+/**
+ * Pop parser state.  Returns false on stack underflow.
+ *
+ * Note: this is defined as an inline function rather than a macro to
+ * give the compiler more flexibility in terms of inlining.
+ */
+static inline bool
+jiffy_writer_pop_state(
+  jiffy_writer_t * const w
+) {
+  // check for underflow
+  if (!w->stack_pos) {
+    // got underflow, return error
+    WRITER_FAIL(w, JIFFY_ERR_STACK_UNDERFLOW);
+  }
+
+  // decriment position
+  w->stack_pos--;
+
+  // check for done
+  if (!w->stack_pos && WRITER_GET_STATE(w) == WRITER_STATE_INIT) {
+    WRITER_SWAP(w, WRITER_STATE_DONE);
+  }
+
+  // return success
+  return true;
+}
+
+// push writer state and return false if an error occurred.
+#define WRITER_PUSH(w, state) do { \
+  if (!jiffy_writer_push_state((w), (state))) { \
+    return false; \
+  } \
+} while (0)
+
+// pop writer state and return false if an error occurred.
+#define WRITER_POP(w) do { \
+  if (!jiffy_writer_pop_state(w)) { \
+    return false; \
+  } \
+} while (0)
+
+bool
+jiffy_writer_init(
+  jiffy_writer_t * const w,
+  const jiffy_writer_cbs_t *cbs,
+  jiffy_writer_state_t * const stack_ptr,
+  const size_t stack_len,
+  void *user_data
+) {
+  // verify that the following conditions are true:
+  // * the writer context is non-null
+  // * the stack memory pointer is non-null
+  // * the number of stack memory elements is greater than 1
+  if (!w || !stack_ptr || stack_len < 2) {
+    // return failure
+    return false;
+  }
+
+  w->cbs = cbs;
+  w->stack_ptr = stack_ptr;
+  w->stack_len = stack_len;
+  w->stack_pos = 0;
+  w->stack_ptr[0] = WRITER_STATE_INIT;
+  w->user_data = user_data;
+
+  // return success
+  return true;
+}
+
+static inline bool
+jiffy_writer_write_literal(
+  jiffy_writer_t * const w,
+  const char * const val,
+  size_t len
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_INIT:
+    WRITER_WRITE(w, val, len);
+    WRITER_SWAP(w, WRITER_STATE_DONE);
+    break;
+  case WRITER_STATE_ARRAY:
+    WRITER_WRITE(w, val, len);
+    WRITER_SWAP(w, WRITER_STATE_ARRAY_AFTER_VALUE);
+    break;
+  case WRITER_STATE_ARRAY_AFTER_VALUE:
+    WRITER_WRITE(w, ",", 1);
+    WRITER_WRITE(w, val, len);
+    break;
+  case WRITER_STATE_OBJECT_VALUE:
+    WRITER_WRITE(w, val, len);
+    WRITER_SWAP(w, WRITER_STATE_OBJECT_AFTER_VALUE);
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_write_null(
+  jiffy_writer_t * const w
+) {
+  return jiffy_writer_write_literal(w, "null", 4);
+}
+
+bool
+jiffy_writer_write_true(
+  jiffy_writer_t * const w
+) {
+  return jiffy_writer_write_literal(w, "true", 4);
+}
+
+bool
+jiffy_writer_write_false(
+  jiffy_writer_t * const w
+) {
+  return jiffy_writer_write_literal(w, "false", 5);
+}
+
+bool
+jiffy_writer_object_start(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_INIT:
+  case WRITER_STATE_ARRAY:
+  case WRITER_STATE_OBJECT_VALUE:
+    WRITER_PUSH(w, WRITER_STATE_OBJECT);
+    WRITER_WRITE(w, "{", 1);
+    break;
+  case WRITER_STATE_ARRAY_AFTER_VALUE:
+    WRITER_WRITE(w, ",", 1);
+    WRITER_PUSH(w, WRITER_STATE_OBJECT);
+    WRITER_WRITE(w, "{", 1);
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_object_end(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_OBJECT:
+  case WRITER_STATE_OBJECT_AFTER_VALUE:
+    WRITER_WRITE(w, "}", 1);
+    WRITER_POP(w);
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_array_start(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_INIT:
+  case WRITER_STATE_ARRAY:
+  case WRITER_STATE_OBJECT_VALUE:
+    WRITER_PUSH(w, WRITER_STATE_ARRAY);
+    WRITER_WRITE(w, "[", 1);
+    break;
+  case WRITER_STATE_ARRAY_AFTER_VALUE:
+    WRITER_WRITE(w, ",", 1);
+    WRITER_PUSH(w, WRITER_STATE_ARRAY);
+    WRITER_WRITE(w, "[", 1);
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_writer_array_end(
+  jiffy_writer_t * const w
+) {
+  switch (WRITER_GET_STATE(w)) {
+  case WRITER_STATE_ARRAY:
+  case WRITER_STATE_ARRAY_AFTER_VALUE:
+    WRITER_WRITE(w, "]", 1);
+    WRITER_POP(w);
+    break;
+  default:
+    WRITER_FAIL(w, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
 }
