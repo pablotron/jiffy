@@ -613,34 +613,34 @@ void jiffy_tree_free(
 );
 
 /**
- * Writer state.
+ * Builder state.
  *
  * Note: In memory-constraint environments you can switch this from a
  * uint32_t to a uint8_t to save on space.  You may pay a speed penalty
  * on architectures which do not allow unaligned access (e.g., ARM).
  */
-typedef uint32_t jiffy_writer_state_t;
+typedef uint32_t jiffy_builder_state_t;
 
 // forward declaration
-typedef struct jiffy_writer_t_ jiffy_writer_t;
+typedef struct jiffy_builder_t_ jiffy_builder_t;
 
 typedef struct {
   // called when there are bytes to write
-  void (*on_write)(const jiffy_writer_t *, const void *, const size_t);
+  void (*on_write)(const jiffy_builder_t *, const void *, const size_t);
 
   // called when writing has finished
-  void (*on_fini)(const jiffy_writer_t *);
+  void (*on_fini)(const jiffy_builder_t *);
 
   // called when an error occurs
-  void (*on_error)(const jiffy_writer_t *, const jiffy_err_t);
-} jiffy_writer_cbs_t;
+  void (*on_error)(const jiffy_builder_t *, const jiffy_err_t);
+} jiffy_builder_cbs_t;
 
-struct jiffy_writer_t_ {
-  // writer callbacks
-  const jiffy_writer_cbs_t * cbs;
+struct jiffy_builder_t_ {
+  // builder callbacks
+  const jiffy_builder_cbs_t * cbs;
 
   // internal state
-  jiffy_writer_state_t *stack_ptr;
+  jiffy_builder_state_t *stack_ptr;
   size_t stack_len;
   size_t stack_pos;
 
@@ -648,162 +648,169 @@ struct jiffy_writer_t_ {
   void *user_data;
 };
 
-_Bool jiffy_writer_init(
-  jiffy_writer_t * const,
-  const jiffy_writer_cbs_t *,
-  jiffy_writer_state_t * const,
+_Bool jiffy_builder_init(
+  jiffy_builder_t * const,
+  const jiffy_builder_cbs_t *,
+  jiffy_builder_state_t * const,
   const size_t,
   void *
 );
 
 /**
- * Return user data associated with writer.
+ * Finalize this builder.
+ */
+_Bool jiffy_builder_fini(
+  jiffy_builder_t * const
+);
+
+/**
+ * Return user data associated with builder.
  */
 void *
-jiffy_writer_get_user_data(
-  // pointer to writer context (required)
-  const jiffy_writer_t * const
+jiffy_builder_get_user_data(
+  // pointer to builder context (required)
+  const jiffy_builder_t * const
 );
 
 /**
- * Write a null value to this writer.
+ * Write a null value to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_null(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_null(
+  jiffy_builder_t * const w
 );
 
 /**
- * Write a true value to this writer.
+ * Write a true value to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_true(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_true(
+  jiffy_builder_t * const w
 );
 
 /**
- * Write a false value to this writer.
+ * Write a false value to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_false(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_false(
+  jiffy_builder_t * const w
 );
 
 /**
- * Start writing a JSON object to this writer.
+ * Start writing a JSON object to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_object_start(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_object_start(
+  jiffy_builder_t * const w
 );
 
 /**
- * Finish writing a JSON object to this writer.
+ * Finish writing a JSON object to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_object_end(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_object_end(
+  jiffy_builder_t * const w
 );
 
 /**
- * Start writing an array to this writer.
+ * Start writing an array to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_array_start(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_array_start(
+  jiffy_builder_t * const w
 );
 
 /**
- * Finish writing an array to this writer.
+ * Finish writing an array to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_array_end(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_array_end(
+  jiffy_builder_t * const w
 );
 
 /**
- * Start writing a number to this writer.
+ * Start writing a number to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_number_start(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_number_start(
+  jiffy_builder_t * const w
 );
 
 /**
- * Write number data to this writer.
+ * Write number data to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_number_data(
-  jiffy_writer_t * const w,
+_Bool jiffy_builder_number_data(
+  jiffy_builder_t * const w,
   const void * const,
   const size_t
 );
 
 /**
- * Finish writing a number to this writer.
+ * Finish writing a number to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_number_end(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_number_end(
+  jiffy_builder_t * const w
 );
 
 /**
- * Write a complete number value stored in a buffer to this writer.
+ * Write a complete number value stored in a buffer to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_number_from_buffer(
-  jiffy_writer_t * const w,
+_Bool jiffy_builder_number_from_buffer(
+  jiffy_builder_t * const w,
   const void * const,
   const size_t
 );
 
 /**
- * Start writing a string to this writer.
+ * Start writing a string to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_string_start(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_string_start(
+  jiffy_builder_t * const w
 );
 
 /**
- * Write string data to this writer.
+ * Write string data to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_string_data(
-  jiffy_writer_t * const w,
+_Bool jiffy_builder_string_data(
+  jiffy_builder_t * const w,
   const void * const,
   const size_t
 );
 
 /**
- * Finish writing a string to this writer.
+ * Finish writing a string to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_string_end(
-  jiffy_writer_t * const w
+_Bool jiffy_builder_string_end(
+  jiffy_builder_t * const w
 );
 
 /**
- * Write a complete string value stored in a buffer to this writer.
+ * Write a complete string value stored in a buffer to this builder.
  *
  * Returns false on error.
  */
-_Bool jiffy_writer_write_string_from_buffer(
-  jiffy_writer_t * const w,
+_Bool jiffy_builder_string_from_buffer(
+  jiffy_builder_t * const w,
   const void * const,
   const size_t
 );
