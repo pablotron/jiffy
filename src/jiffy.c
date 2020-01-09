@@ -2081,7 +2081,7 @@ jiffy_builder_state_to_s(
 } while (0)
 
 // call on_write callback with buffer and length, if it is non-NULL
-#define builder(w, buf, len) do { \
+#define BUILDER_WRITE(w, buf, len) do { \
   if ((w)->cbs && (w)->cbs->on_write) { \
     (w)->cbs->on_write(w, (buf), (len)); \
   } \
@@ -2209,19 +2209,19 @@ jiffy_builder_literal(
 ) {
   switch (BUILDER_GET_STATE(w)) {
   case BUILDER_STATE_INIT:
-    builder(w, val, len);
+    BUILDER_WRITE(w, val, len);
     BUILDER_SWAP(w, BUILDER_STATE_DONE);
     break;
   case BUILDER_STATE_ARRAY:
-    builder(w, val, len);
-    BUILDER_SWAP(w, BUILDER_STATE_ARRAY_AFTER_VALUE);
+    BUILDER_WRITE(w, val, len);
+    BUILDER_PUSH(w, BUILDER_STATE_ARRAY_AFTER_VALUE);
     break;
   case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    builder(w, ",", 1);
-    builder(w, val, len);
+    BUILDER_WRITE(w, ",", 1);
+    BUILDER_WRITE(w, val, len);
     break;
   case BUILDER_STATE_OBJECT_VALUE:
-    builder(w, val, len);
+    BUILDER_WRITE(w, val, len);
     BUILDER_SWAP(w, BUILDER_STATE_OBJECT_AFTER_VALUE);
     break;
   default:
@@ -2255,22 +2255,21 @@ jiffy_builder_false(
 
 bool
 jiffy_builder_object_start(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(w)) {
+  switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_INIT:
   case BUILDER_STATE_ARRAY:
   case BUILDER_STATE_OBJECT_VALUE:
-    BUILDER_PUSH(w, BUILDER_STATE_OBJECT);
-    builder(w, "{", 1);
+    BUILDER_PUSH(b, BUILDER_STATE_OBJECT);
+    BUILDER_WRITE(b, "{", 1);
     break;
   case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    builder(w, ",", 1);
-    BUILDER_PUSH(w, BUILDER_STATE_OBJECT);
-    builder(w, "{", 1);
+    BUILDER_PUSH(b, BUILDER_STATE_OBJECT);
+    BUILDER_WRITE(b, ",{", 2);
     break;
   default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
 
   // return success
@@ -2284,7 +2283,7 @@ jiffy_builder_object_end(
   switch (BUILDER_GET_STATE(w)) {
   case BUILDER_STATE_OBJECT:
   case BUILDER_STATE_OBJECT_AFTER_VALUE:
-    builder(w, "}", 1);
+    BUILDER_WRITE(w, "}", 1);
     BUILDER_POP(w);
     break;
   default:
@@ -2297,22 +2296,22 @@ jiffy_builder_object_end(
 
 bool
 jiffy_builder_array_start(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(w)) {
+  switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_INIT:
   case BUILDER_STATE_ARRAY:
   case BUILDER_STATE_OBJECT_VALUE:
-    BUILDER_PUSH(w, BUILDER_STATE_ARRAY);
-    builder(w, "[", 1);
+    BUILDER_PUSH(b, BUILDER_STATE_ARRAY);
+    BUILDER_WRITE(b, "[", 1);
     break;
   case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    builder(w, ",", 1);
-    BUILDER_PUSH(w, BUILDER_STATE_ARRAY);
-    builder(w, "[", 1);
+    BUILDER_WRITE(b, ",", 1);
+    BUILDER_PUSH(b, BUILDER_STATE_ARRAY);
+    BUILDER_WRITE(b, "[", 1);
     break;
   default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
 
   // return success
@@ -2321,16 +2320,20 @@ jiffy_builder_array_start(
 
 bool
 jiffy_builder_array_end(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(w)) {
+  switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_ARRAY:
+    BUILDER_WRITE(b, "]", 1);
+    BUILDER_POP(b);
+    break;
   case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    builder(w, "]", 1);
-    BUILDER_POP(w);
+    BUILDER_WRITE(b, "]", 1);
+    BUILDER_POP(b);
+    BUILDER_POP(b);
     break;
   default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
 
   // return success
@@ -2348,7 +2351,7 @@ jiffy_builder_number_start(
     BUILDER_PUSH(w, BUILDER_STATE_NUMBER_START);
     break;
   case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    builder(w, ",", 1);
+    BUILDER_WRITE(w, ",", 1);
     BUILDER_PUSH(w, BUILDER_STATE_NUMBER);
     BUILDER_PUSH(w, BUILDER_STATE_NUMBER_START);
     break;
@@ -2370,15 +2373,15 @@ jiffy_builder_number_byte(
     switch (byte) {
     case '+':
     case '-':
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_AFTER_SIGN);
       break;
     case '0':
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO);
       break;
     CASE_NONZERO_NUMBER
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_INT);
       break;
     default:
@@ -2389,11 +2392,11 @@ jiffy_builder_number_byte(
   case BUILDER_STATE_NUMBER_AFTER_SIGN:
     switch (byte) {
     case '0':
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO);
       break;
     CASE_NONZERO_NUMBER
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_INT);
       break;
     default:
@@ -2404,12 +2407,12 @@ jiffy_builder_number_byte(
   case BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO:
     switch (byte) {
     case '.':
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_FRAC);
       break;
     case 'e':
     case 'E':
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP_START);
       break;
     default:
@@ -2420,15 +2423,15 @@ jiffy_builder_number_byte(
   case BUILDER_STATE_NUMBER_INT:
     switch (byte) {
     CASE_NUMBER
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       break;
     case '.':
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_AFTER_DOT);
       break;
     case 'e':
     case 'E':
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP_START);
       break;
     default:
@@ -2439,7 +2442,7 @@ jiffy_builder_number_byte(
   case BUILDER_STATE_NUMBER_AFTER_DOT:
     switch (byte) {
     CASE_NUMBER
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_FRAC);
       break;
     default:
@@ -2450,11 +2453,11 @@ jiffy_builder_number_byte(
   case BUILDER_STATE_NUMBER_FRAC:
     switch (byte) {
     CASE_NUMBER
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       break;
     case 'e':
     case 'E':
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP_START);
       break;
     default:
@@ -2465,12 +2468,12 @@ jiffy_builder_number_byte(
   case BUILDER_STATE_NUMBER_EXP_START:
     switch (byte) {
     CASE_NUMBER
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP);
       break;
     case '+':
     case '-':
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP_AFTER_SIGN);
       break;
     default:
@@ -2481,7 +2484,7 @@ jiffy_builder_number_byte(
   case BUILDER_STATE_NUMBER_EXP_AFTER_SIGN:
     switch (byte) {
     CASE_NONZERO_NUMBER
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP);
       break;
     default:
@@ -2492,7 +2495,7 @@ jiffy_builder_number_byte(
   case BUILDER_STATE_NUMBER_EXP:
     switch (byte) {
     CASE_NUMBER
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
       break;
     default:
       BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
@@ -2567,15 +2570,15 @@ jiffy_builder_string_start(
   switch (BUILDER_GET_STATE(w)) {
   case BUILDER_STATE_INIT:
   case BUILDER_STATE_OBJECT_VALUE:
-    builder(w, "\"", 1);
+    BUILDER_WRITE(w, "\"", 1);
     BUILDER_PUSH(w, BUILDER_STATE_STRING);
     break;
   case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    builder(w, ",\"", 2);
+    BUILDER_WRITE(w, ",\"", 2);
     BUILDER_PUSH(w, BUILDER_STATE_STRING);
     break;
   case BUILDER_STATE_OBJECT:
-    builder(w, "\"", 1);
+    BUILDER_WRITE(w, "\"", 1);
     BUILDER_PUSH(w, BUILDER_STATE_STRING);
     break;
   default:
@@ -2598,35 +2601,35 @@ jiffy_builder_string_byte(
       BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
       break;
     case '\\':
-      builder(w, "\\\\", 2);
+      BUILDER_WRITE(w, "\\\\", 2);
       break;
     case '/':
-      builder(w, "\\/", 2);
+      BUILDER_WRITE(w, "\\/", 2);
       break;
     case '\"':
-      builder(w, "\\\"", 2);
+      BUILDER_WRITE(w, "\\\"", 2);
       break;
       break;
     case '\n':
-      builder(w, "\\n", 2);
+      BUILDER_WRITE(w, "\\n", 2);
       break;
     case '\r':
-      builder(w, "\\r", 2);
+      BUILDER_WRITE(w, "\\r", 2);
       break;
     case '\t':
-      builder(w, "\\t", 2);
+      BUILDER_WRITE(w, "\\t", 2);
       break;
     case '\v':
-      builder(w, "\\v", 2);
+      BUILDER_WRITE(w, "\\v", 2);
       break;
     case '\f':
-      builder(w, "\\f", 2);
+      BUILDER_WRITE(w, "\\f", 2);
       break;
     case '\b':
-      builder(w, "\\b", 2);
+      BUILDER_WRITE(w, "\\b", 2);
       break;
     default:
-      builder(w, &byte, 1);
+      BUILDER_WRITE(w, &byte, 1);
     }
 
     break;
@@ -2662,11 +2665,11 @@ jiffy_builder_string_end(
 ) {
   switch (BUILDER_GET_STATE(w)) {
   case BUILDER_STATE_STRING:
-    builder(w, "\"", 1);
+    BUILDER_WRITE(w, "\"", 1);
     BUILDER_POP(w);
 
     if (BUILDER_GET_STATE(w) == BUILDER_STATE_OBJECT) {
-      builder(w, ":", 1);
+      BUILDER_WRITE(w, ":", 1);
       BUILDER_PUSH(w, BUILDER_STATE_OBJECT_VALUE);
     }
 

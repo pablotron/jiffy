@@ -77,7 +77,7 @@ static void on_parser_array_end(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
-  if (!jiffy_builder_array_start(builder)) {
+  if (!jiffy_builder_array_end(builder)) {
     exit(EXIT_FAILURE);
   }
 }
@@ -208,6 +208,8 @@ void test_builder(int argc, char *argv[]) {
 
       // strip newline
       src_buf[len - 1] = '\0';
+
+      warnx("I: s = %s", src_buf);
 
       // clear builder data
       builder_data.len = 0;
