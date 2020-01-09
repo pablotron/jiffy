@@ -6,6 +6,7 @@
 
 extern void test_parser(int, char **);
 extern void test_tree(int, char **);
+extern void test_builder(int, char **);
 static void help(int, char **);
 
 static const struct {
@@ -25,10 +26,10 @@ static const struct {
   .text = "test jiffy_tree_new()",
   .fn   = test_tree,
 }, {
-//   .name = "builder",
-//   .text = "test jiffy_builder_*()",
-//   .fn   = test_builder,
-// }, {
+  .name = "builder",
+  .text = "test jiffy_builder_*()",
+  .fn   = test_builder,
+}, {
   .name = NULL,
 }};
 
