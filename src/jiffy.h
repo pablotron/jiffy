@@ -540,23 +540,42 @@ const jiffy_value_t *jiffy_object_get_nth_value(
   const size_t ofs
 );
 
+// forward reference
 typedef struct jiffy_tree_t_ jiffy_tree_t;
 
+/**
+ * Tree parser callbacks.
+ *
+ * Used by the tree parser to allocate memory, free memory, and to
+ * notify the user about error conditions.
+ *
+ * Note: Any or all of these callback pointers may be NULL.
+ */
 typedef struct {
+  // Memory allocation callback (optional, defaults to malloc() if
+  // unspecified).
   void *(*malloc)(const size_t, void * const);
+
+  // Memory free callback (optional, defaults to free() if unspecified).
   void (*free)(void * const, void * const);
 
+  // Error callback (optional).  Called by the tree parser if an error
+  // occurs during parsing.
   void (*on_error)(const jiffy_tree_t *, const jiffy_err_t);
 } jiffy_tree_cbs_t;
 
 struct jiffy_tree_t_ {
+  // callbacks
   const jiffy_tree_cbs_t *cbs;
+
+  // opaque user data pointer
   void *user_data;
 
   // all allocated data, ordered like so:
-  // * vals
-  // * array rows
-  // * object rows
+  // * vals (array of values)
+  // * array rows (array of json_value_t*, pointing into vals)
+  // * object rows (array of json_value_t*, two entries per key/value
+  //   pair, and the pointers point into vals above)
   // * bytes (byte data for numbers and strings)
   uint8_t *data;
 
@@ -624,6 +643,11 @@ typedef uint32_t jiffy_builder_state_t;
 // forward declaration
 typedef struct jiffy_builder_t_ jiffy_builder_t;
 
+/**
+ * Builder callbacks.
+ *
+ * Note: Any or all of these callback pointers may be NULL.
+ */
 typedef struct {
   // called when there are bytes to write
   void (*on_write)(const jiffy_builder_t *, const void *, const size_t);
@@ -639,20 +663,39 @@ struct jiffy_builder_t_ {
   // builder callbacks
   const jiffy_builder_cbs_t * cbs;
 
-  // internal state
+  // pointer to memory for builder state stack.  Provided by user via a
+  // jiffy_builder_init() parameter.
   jiffy_builder_state_t *stack_ptr;
+
+  // number of entries in stack.  Provided by user via a
+  // jiffy_builder_init() parameter.
   size_t stack_len;
+
+  // stack position (internal)
   size_t stack_pos;
 
   // opaque pointer to user data
   void *user_data;
 };
 
+/**
+ * Create a new builder.
+ */
 _Bool jiffy_builder_init(
+  // pointer to builder
   jiffy_builder_t * const,
+
+  // pointer to builder callbacks
   const jiffy_builder_cbs_t *,
+
+  // pointer to memory for builder state stack.  Provided by user via a
+  // jiffy_parser_init() parameter.
   jiffy_builder_state_t * const,
+
+  // number of entries in builder state stack.
   const size_t,
+
+  // opaque user pointer
   void *
 );
 
