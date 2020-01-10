@@ -1,5 +1,5 @@
-CFLAGS=-O2 -W -Wall -Wextra -Werror -Wimplicit-fallthrough -pedantic -std=c11
-# CFLAGS= -W -Wall -Werror -pedantic -std=c11 -Wimplicit-fallthrough -g -pg
+# CFLAGS=-O2 -W -Wall -Wextra -Werror -Wimplicit-fallthrough -pedantic -std=c11
+CFLAGS=-O2 -W -Wall -Wextra -Werror -Wimplicit-fallthrough -pedantic -std=c11 -g -pg
 OBJS=jiffy.o jiffy-test.o tests/test-parser.o tests/test-tree.o tests/test-builder.o
 APP=jiffy-test
 

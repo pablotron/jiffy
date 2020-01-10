@@ -193,7 +193,7 @@ void test_parser(int argc, char *argv[]) {
 
     while (fgets(buf, sizeof(buf), fh)) {
       const size_t len = strlen(buf);
-      if (len < 2) {
+      if (len < 2 || buf[0] == '#') {
         // skip line
         continue;
       }

@@ -258,8 +258,8 @@ void test_builder(int argc, char *argv[]) {
     while (fgets(src_buf, sizeof(src_buf), fh)) {
       // read input line
       const size_t len = strlen(src_buf);
-      if (len < 2) {
-        // skip empty lines
+      if (len < 2 || src_buf[0] == '#') {
+        // skip empty lines and commented lines
         continue;
       }
 

@@ -33,12 +33,13 @@ dump_value(
       size_t len;
       const uint8_t * const ptr = jiffy_number_get_bytes(value, &len);
       if (!ptr) {
-        fprintf(stderr, "E: jiffy_number_bet_bytes()\n");
-        exit(EXIT_FAILURE);
+        errx(EXIT_FAILURE, "E: jiffy_number_get_bytes()");
       }
 
       fputs(": ", stderr);
-      fwrite(ptr, len, 1, stderr);
+      if (len > 0 && !fwrite(ptr, len, 1, stderr)) {
+        err(EXIT_FAILURE, "E: number fwrite(): ");
+      }
     }
 
     break;
@@ -47,12 +48,14 @@ dump_value(
       size_t len;
       const uint8_t * const ptr = jiffy_string_get_bytes(value, &len);
       if (!ptr) {
-        fprintf(stderr, "E: jiffy_number_bet_bytes()\n");
-        exit(EXIT_FAILURE);
+        errx(EXIT_FAILURE, "E: jiffy_string_get_bytes()");
       }
 
-      fputs(": ", stderr);
-      fwrite(ptr, len, 1, stderr);
+      fputs(": \"", stderr);
+      if (len > 0 && !fwrite(ptr, len, 1, stderr)) {
+        err(EXIT_FAILURE, "E: string fwrite(): ");
+      }
+      fputs("\"", stderr);
     }
 
     break;
@@ -77,7 +80,7 @@ dump_value(
     {
       const size_t len = jiffy_object_get_size(value);
       if (len > 0) {
-        fputs(": {\n", stderr);
+        fprintf(stderr, ": (%zu) {\n", len);
         for (size_t i = 0; i < len; i++) {
           dump_value(jiffy_object_get_nth_key(value, i), depth + 1);
           dump_value(jiffy_object_get_nth_value(value, i), depth + 1);
@@ -110,7 +113,7 @@ void test_tree(int argc, char *argv[]) {
     while (fgets(buf, sizeof(buf), fh)) {
       // get line length
       const size_t len = strlen(buf);
-      if (len < 2) {
+      if (len < 2 || buf[0] == '#') {
         // skip empty lines
         continue;
       }

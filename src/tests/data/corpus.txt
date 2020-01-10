@@ -1,3 +1,5 @@
+# json parsing tests
+# lines that begin with '#' are comments
 {}
 []
 true
@@ -14,3 +16,9 @@ null
 "\uffff"
 "\u0001"
 [5, 5.2, 5e10, 5.2e12]
+
+# causes a crash
+# {"foo":{"foobar\r\n":true},"bar":false,"baz":[null]}
+
+# also causes a crash
+{"":{"":0},"":0}
