@@ -858,6 +858,17 @@ _Bool jiffy_builder_string_from_buffer(
   const size_t
 );
 
+const char *
+jiffy_builder_state_to_s(
+  const jiffy_builder_state_t
+);
+
+const jiffy_builder_state_t *
+jiffy_builder_get_stack(
+  const jiffy_builder_t * const,
+  size_t * const
+);
+
 #ifdef __cplusplus
 };
 #endif // __cplusplus

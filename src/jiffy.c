@@ -2281,8 +2281,13 @@ jiffy_builder_object_end(
   jiffy_builder_t * const w
 ) {
   switch (BUILDER_GET_STATE(w)) {
-  case BUILDER_STATE_OBJECT:
   case BUILDER_STATE_OBJECT_AFTER_VALUE:
+  case BUILDER_STATE_OBJECT_VALUE:
+    BUILDER_WRITE(w, "}", 1);
+    BUILDER_POP(w);
+    BUILDER_POP(w);
+    break;
+  case BUILDER_STATE_OBJECT:
     BUILDER_WRITE(w, "}", 1);
     BUILDER_POP(w);
     break;
@@ -2347,6 +2352,7 @@ jiffy_builder_number_start(
   switch (BUILDER_GET_STATE(w)) {
   case BUILDER_STATE_INIT:
   case BUILDER_STATE_OBJECT_VALUE:
+  case BUILDER_STATE_ARRAY:
     BUILDER_PUSH(w, BUILDER_STATE_NUMBER);
     BUILDER_PUSH(w, BUILDER_STATE_NUMBER_START);
     break;
@@ -2536,6 +2542,7 @@ jiffy_builder_number_end(
   case BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO:
   case BUILDER_STATE_NUMBER_INT:
   case BUILDER_STATE_NUMBER_FRAC:
+  case BUILDER_STATE_NUMBER_EXP:
     BUILDER_POP(w);
     BUILDER_POP(w);
 
@@ -2569,6 +2576,7 @@ jiffy_builder_string_start(
 ) {
   switch (BUILDER_GET_STATE(w)) {
   case BUILDER_STATE_INIT:
+  case BUILDER_STATE_OBJECT:
   case BUILDER_STATE_OBJECT_VALUE:
     BUILDER_WRITE(w, "\"", 1);
     BUILDER_PUSH(w, BUILDER_STATE_STRING);
@@ -2577,8 +2585,9 @@ jiffy_builder_string_start(
     BUILDER_WRITE(w, ",\"", 2);
     BUILDER_PUSH(w, BUILDER_STATE_STRING);
     break;
-  case BUILDER_STATE_OBJECT:
-    BUILDER_WRITE(w, "\"", 1);
+  case BUILDER_STATE_OBJECT_AFTER_VALUE:
+    BUILDER_WRITE(w, ",\"", 2);
+    BUILDER_SWAP(w, BUILDER_STATE_OBJECT_VALUE);
     BUILDER_PUSH(w, BUILDER_STATE_STRING);
     break;
   default:
@@ -2693,4 +2702,16 @@ jiffy_builder_string_from_buffer(
     jiffy_builder_string_data(w, ptr, len) &&
     jiffy_builder_string_end(w)
   );
+}
+
+const jiffy_builder_state_t *
+jiffy_builder_get_stack(
+  const jiffy_builder_t * const b,
+  size_t * const len
+) {
+  if (len) {
+    *len = b->stack_pos + 1;
+  }
+
+  return b->stack_ptr;
 }

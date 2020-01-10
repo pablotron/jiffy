@@ -39,6 +39,23 @@ static const jiffy_builder_cbs_t BUILDER_CBS = {
 };
 
 static void
+dump_builder(
+  const jiffy_builder_t * const b
+) {
+  size_t len;
+  const jiffy_builder_state_t * const stack = jiffy_builder_get_stack(b, &len);
+
+  fprintf(stderr, "stack = ");
+  for (size_t i = 0; i < len; i++) {
+    const char * const delim = (i > 0) ? "," : "";
+    const char * const state = jiffy_builder_state_to_s(stack[i]);
+    fprintf(stderr, "%s%s", delim, state);
+
+  }
+  fprintf(stderr, "\n");
+}
+
+static void
 on_parser_error(
   const jiffy_parser_t * const p,
   const jiffy_err_t err
@@ -50,7 +67,10 @@ static void on_parser_object_start(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: object start");
   if (!jiffy_builder_object_start(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -59,7 +79,11 @@ static void on_parser_object_end(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: object end");
+  dump_builder(builder);
   if (!jiffy_builder_object_end(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -68,7 +92,10 @@ static void on_parser_array_start(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: array start");
   if (!jiffy_builder_array_start(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -77,7 +104,10 @@ static void on_parser_array_end(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: array end");
   if (!jiffy_builder_array_end(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -86,7 +116,10 @@ static void on_parser_string_start(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: string start");
   if (!jiffy_builder_string_start(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -95,7 +128,10 @@ static void on_parser_string_end(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: string end");
   if (!jiffy_builder_string_end(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -105,7 +141,10 @@ static void on_parser_string_byte(
   const uint8_t byte
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: string data: %02x", byte);
   if (!jiffy_builder_string_data(builder, &byte, 1)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -114,7 +153,10 @@ static void on_parser_number_start(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: number start");
   if (!jiffy_builder_number_start(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -123,7 +165,10 @@ static void on_parser_number_end(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: number end");
   if (!jiffy_builder_number_end(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -133,7 +178,10 @@ static void on_parser_number_byte(
   const uint8_t byte
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: number data: %02x", byte);
   if (!jiffy_builder_number_data(builder, &byte, 1)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -142,7 +190,10 @@ static void on_parser_true(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: true");
   if (!jiffy_builder_true(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -151,7 +202,10 @@ static void on_parser_false(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: false");
   if (!jiffy_builder_false(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -160,7 +214,10 @@ static void on_parser_null(
   const jiffy_parser_t * const p
 ) {
   jiffy_builder_t * const builder = jiffy_parser_get_user_data(p);
+
+  warnx("build: null");
   if (!jiffy_builder_null(builder)) {
+    dump_builder(builder);
     exit(EXIT_FAILURE);
   }
 }
@@ -209,7 +266,7 @@ void test_builder(int argc, char *argv[]) {
       // strip newline
       src_buf[len - 1] = '\0';
 
-      warnx("I: s = %s", src_buf);
+      warnx("I: src = %s", src_buf);
 
       // clear builder data
       builder_data.len = 0;
@@ -229,6 +286,9 @@ void test_builder(int argc, char *argv[]) {
       if (!jiffy_builder_fini(&builder)) {
         errx(EXIT_FAILURE, "jiffy_builder_fini() failed");
       }
+
+      dst_buf[builder_data.len] = '\0';
+      warnx("I: dst = %s", dst_buf);
     }
 
     // close input file, check for error
