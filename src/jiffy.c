@@ -2062,7 +2062,7 @@ jiffy_builder_state_to_s(
 #define BUILDER_GET_STATE(b) ((b)->stack_ptr[(b)->stack_pos])
 
 // set the current writer state
-#define BUILDER_SWAP(b, state) (b)->stack_ptr[(b)->stack_pos] = (state)
+#define BUILDER_SWAP(b, val) (b)->stack_ptr[(b)->stack_pos] = (val)
 
 // invoke on_error callback with error code, set the state to
 // BUILDER_STATE_FAIL, and then return false.
