@@ -82,8 +82,12 @@ dump_value(
       if (len > 0) {
         fprintf(stderr, ": (%zu) {\n", len);
         for (size_t i = 0; i < len; i++) {
-          dump_value(jiffy_object_get_nth_key(value, i), depth + 1);
-          dump_value(jiffy_object_get_nth_value(value, i), depth + 1);
+          const jiffy_value_t * const key = jiffy_object_get_nth_key(value, i);
+          // warnx("key = %p, key->type = %02x, key->v_str.ptr = %p, key->v_str.len = %zu", (void*) key, key->type, key->v_str.ptr, key->v_str.len);
+          dump_value(key, depth + 1);
+
+          const jiffy_value_t * const val = jiffy_object_get_nth_value(value, i);
+          dump_value(val, depth + 1);
         }
         indent(depth);
         fputc('}', stderr);
@@ -94,11 +98,50 @@ dump_value(
 
     break;
   default:
-    exit(-1);
+    errx(EXIT_FAILURE, "Unknown object type: %02x", type);
   }
 
   fprintf(stderr, "\n");
 }
+
+static void
+dump_parse_data(
+  const jiffy_tree_parse_data_t * const data
+) {
+  const jiffy_value_t * const vals = data->tree->vals;
+  for (size_t i = 0; i < data->num_vals; i++) {
+    warnx("data->vals[%zu] = %s", i, jiffy_type_to_s(vals[i].type));
+  }
+
+  for (size_t i = 0; i < data->num_ary_rows; i++) {
+    const jiffy_tree_parse_ary_row_t * const row = data->ary_rows + i;
+    warnx(
+      "data->ary_rows[%zu] = { .ary = %zd, .val = %zd }",
+      i, row[i].ary - vals, row[i].val - vals
+    );
+  }
+
+  for (size_t i = 0; i < data->num_obj_rows; i++) {
+    const jiffy_tree_parse_obj_row_t * const row = data->obj_rows + i;
+    warnx(
+      "data->obj_rows[%zu] = { .obj = %zd, .key = %zd, .val = %zd }",
+      i, row[i].obj - vals, row[i].key - vals, row[i].val - vals
+    );
+  }
+}
+
+static void
+on_parse_data(
+  const jiffy_tree_parse_data_t * const data,
+  void * const user_data
+) {
+  (void) user_data;
+  dump_parse_data(data);
+}
+
+static const jiffy_tree_cbs_t TREE_CBS = {
+  .on_parse_data = on_parse_data,
+};
 
 void test_tree(int argc, char *argv[]) {
   char buf[1024];
@@ -118,13 +161,14 @@ void test_tree(int argc, char *argv[]) {
         continue;
       }
 
-      // strip newline
+      // strip newline, terminate
       buf[len - 1] = '\0';
+      warnx("src_buf = \"%s\"", buf);
 
       // create parse tree, check for error
       jiffy_tree_t tree;
       // if (!jiffy_tree_new_ex(&tree, NULL, stack_mem, STACK_LEN, buf, len - 1, NULL))
-      if (!jiffy_tree_new(&tree, NULL, buf, len - 1, NULL)) {
+      if (!jiffy_tree_new(&tree, &TREE_CBS, buf, len - 1, NULL)) {
         errx(EXIT_FAILURE, "jiffy_tree_new()");
       }
 

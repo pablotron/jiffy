@@ -1163,30 +1163,6 @@ jiffy_object_get_nth_value(
   return is_valid ? val->v_obj.vals[2 * ofs + 1] : NULL;
 }
 
-typedef struct {
-  // number of bytes in numbers and strings
-  size_t num_bytes;
-
-  // total number of values (including objects)
-  size_t num_vals;
-
-  // total number of objects
-  size_t num_objs;
-
-  // total number of object key/value pairs
-  size_t num_obj_rows;
-
-  // total number of array values across all arrays
-  size_t num_ary_rows;
-
-  // current and maximum depth
-  size_t curr_depth,
-         max_depth;
-
-  // error encountered during scan
-  jiffy_err_t err;
-} jiffy_tree_scan_data_t;
-
 static void
 on_tree_scan_byte(
  const jiffy_parser_t * const p,
@@ -1306,49 +1282,6 @@ jiffy_tree_scan(
   // populate scan data
   return jiffy_parse(&TREE_SCAN_CBS, stack, stack_len, src, len, scan_data);
 }
-
-typedef struct {
-  jiffy_value_t *ary;
-  jiffy_value_t *val;
-} jiffy_tree_parse_ary_row_t;
-
-typedef struct {
-  jiffy_value_t *obj;
-  jiffy_value_t *key;
-  jiffy_value_t *val;
-} jiffy_tree_parse_obj_row_t;
-
-typedef struct {
-  // scan data
-  const jiffy_tree_scan_data_t *scan_data;
-
-  // output tree
-  jiffy_tree_t *tree;
-
-  // allocated data for parsing
-  uint8_t *data;
-
-  // number of values
-  size_t num_vals;
-
-  // container stack (pointer into data)
-  jiffy_value_t **stack;
-  size_t stack_pos;
-
-  // array/value pairs (pointer into data)
-  jiffy_tree_parse_ary_row_t *ary_rows;
-  size_t num_ary_rows;
-
-  // object/key/value tuples (pointer into data)
-  jiffy_tree_parse_obj_row_t *obj_rows;
-  size_t num_obj_rows;
-
-  // pointer to output byte data
-  uint8_t *bytes;
-  size_t num_bytes;
-
-  jiffy_err_t err;
-} jiffy_tree_parse_data_t;
 
 static void
 on_tree_parse_null(
@@ -1509,13 +1442,21 @@ on_tree_parse_object_key_start(
   // populate object row
   parse_data->obj_rows[ofs].obj = parse_data->stack[parse_data->stack_pos - 1];
   parse_data->obj_rows[ofs].key = parse_data->tree->vals + parse_data->num_vals;
-  parse_data->obj_rows[ofs].val = parse_data->tree->vals + parse_data->num_vals + 1;
 
   // increment object row count
   parse_data->obj_rows[ofs].obj->v_obj.len++;
 
   // increment total object row count
   parse_data->num_obj_rows++;
+}
+
+static void
+on_tree_parse_object_value_start(
+ const jiffy_parser_t * const p
+) {
+  jiffy_tree_parse_data_t *parse_data = jiffy_parser_get_user_data(p);
+  const size_t ofs = parse_data->num_obj_rows - 1;
+  parse_data->obj_rows[ofs].val = parse_data->tree->vals + parse_data->num_vals;
 }
 
 static void
@@ -1548,6 +1489,7 @@ TREE_PARSE_CBS = {
   .on_object_start        = on_tree_parse_object_start,
   .on_object_end          = on_tree_parse_object_end,
   .on_object_key_start    = on_tree_parse_object_key_start,
+  .on_object_value_start  = on_tree_parse_object_value_start,
 
   .on_error               = on_tree_parse_error,
 };
@@ -1760,6 +1702,10 @@ jiffy_tree_new_ex(
     TREE_FAIL(tree, scan_data.err);
   }
 
+  if (cbs && cbs->on_scan_data) {
+    cbs->on_scan_data(&scan_data, user_data);
+  }
+
   // save tree value count
   tree->data = NULL;
   tree->vals = NULL;
@@ -1850,6 +1796,11 @@ jiffy_tree_new_ex(
 
     // fill object rows
     tree_parse_fill_obj_rows(&parse_data);
+
+    if (cbs && cbs->on_parse_data) {
+      // trigger user callback
+      cbs->on_parse_data(&parse_data, user_data);
+    }
 
     // free parser memory
     jiffy_tree_parser_free(tree, parse_mem);
