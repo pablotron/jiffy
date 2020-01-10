@@ -2024,8 +2024,9 @@ jiffy_tree_free(
   JIFFY_DEF_BUILDER_STATE(NUMBER_EXP_AFTER_SIGN), \
   JIFFY_DEF_BUILDER_STATE(NUMBER_EXP), \
   JIFFY_DEF_BUILDER_STATE(ARRAY), \
-  JIFFY_DEF_BUILDER_STATE(ARRAY_AFTER_VALUE), \
+  JIFFY_DEF_BUILDER_STATE(ARRAY_START), \
   JIFFY_DEF_BUILDER_STATE(OBJECT), \
+  JIFFY_DEF_BUILDER_STATE(OBJECT_KEY), \
   JIFFY_DEF_BUILDER_STATE(OBJECT_VALUE), \
   JIFFY_DEF_BUILDER_STATE(OBJECT_AFTER_VALUE), \
   JIFFY_DEF_BUILDER_STATE(LAST),
@@ -2058,32 +2059,32 @@ jiffy_builder_state_to_s(
 }
 
 // get the current writer state
-#define BUILDER_GET_STATE(w) ((w)->stack_ptr[(w)->stack_pos])
+#define BUILDER_GET_STATE(b) ((b)->stack_ptr[(b)->stack_pos])
 
 // set the current writer state
-#define BUILDER_SWAP(w, state) (w)->stack_ptr[(w)->stack_pos] = (state)
+#define BUILDER_SWAP(b, state) (b)->stack_ptr[(b)->stack_pos] = (state)
 
 // invoke on_error callback with error code, set the state to
 // BUILDER_STATE_FAIL, and then return false.
-#define BUILDER_FAIL(w, err) do { \
-  if ((w)->cbs && (w)->cbs->on_error) { \
-    (w)->cbs->on_error((w), err); \
+#define BUILDER_FAIL(b, err) do { \
+  if ((b)->cbs && (b)->cbs->on_error) { \
+    (b)->cbs->on_error((b), err); \
   } \
-  BUILDER_SWAP((w), BUILDER_STATE_FAIL); \
+  BUILDER_SWAP((b), BUILDER_STATE_FAIL); \
   return false; \
 } while (0)
 
 // call given callback, if it is non-NULL
-#define BUILDER_FIRE(w, cb_name) do { \
-  if ((w)->cbs && (w)->cbs->cb_name) { \
-    (w)->cbs->cb_name(w); \
+#define BUILDER_FIRE(b, cb_name) do { \
+  if ((b)->cbs && (b)->cbs->cb_name) { \
+    (b)->cbs->cb_name(b); \
   } \
 } while (0)
 
 // call on_write callback with buffer and length, if it is non-NULL
-#define BUILDER_WRITE(w, buf, len) do { \
-  if ((w)->cbs && (w)->cbs->on_write) { \
-    (w)->cbs->on_write(w, (buf), (len)); \
+#define BUILDER_WRITE(b, buf, len) do { \
+  if ((b)->cbs && (b)->cbs->on_write) { \
+    (b)->cbs->on_write(b, (buf), (len)); \
   } \
 } while (0)
 
@@ -2095,14 +2096,14 @@ jiffy_builder_state_to_s(
  */
 static inline bool
 jiffy_builder_push_state(
-  jiffy_builder_t * const w,
+  jiffy_builder_t * const b,
   const jiffy_builder_state_t state
 ) {
-  if (w->stack_pos < w->stack_len - 1) {
-    w->stack_ptr[++w->stack_pos] = state;
+  if (b->stack_pos < b->stack_len - 1) {
+    b->stack_ptr[++b->stack_pos] = state;
     return true;
   } else {
-    BUILDER_FAIL(w, JIFFY_ERR_STACK_OVERFLOW);
+    BUILDER_FAIL(b, JIFFY_ERR_STACK_OVERFLOW);
   }
 }
 
@@ -2114,20 +2115,20 @@ jiffy_builder_push_state(
  */
 static inline bool
 jiffy_builder_pop_state(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
   // check for underflow
-  if (!w->stack_pos) {
+  if (!b->stack_pos) {
     // got underflow, return error
-    BUILDER_FAIL(w, JIFFY_ERR_STACK_UNDERFLOW);
+    BUILDER_FAIL(b, JIFFY_ERR_STACK_UNDERFLOW);
   }
 
   // decriment position
-  w->stack_pos--;
+  b->stack_pos--;
 
   // check for done
-  if (!w->stack_pos && BUILDER_GET_STATE(w) == BUILDER_STATE_INIT) {
-    BUILDER_SWAP(w, BUILDER_STATE_DONE);
+  if (!b->stack_pos && BUILDER_GET_STATE(b) == BUILDER_STATE_INIT) {
+    BUILDER_SWAP(b, BUILDER_STATE_DONE);
   }
 
   // return success
@@ -2135,22 +2136,22 @@ jiffy_builder_pop_state(
 }
 
 // push writer state and return false if an error occurred.
-#define BUILDER_PUSH(w, state) do { \
-  if (!jiffy_builder_push_state((w), (state))) { \
+#define BUILDER_PUSH(b, state) do { \
+  if (!jiffy_builder_push_state((b), (state))) { \
     return false; \
   } \
 } while (0)
 
 // pop writer state and return false if an error occurred.
-#define BUILDER_POP(w) do { \
-  if (!jiffy_builder_pop_state(w)) { \
+#define BUILDER_POP(b) do { \
+  if (!jiffy_builder_pop_state(b)) { \
     return false; \
   } \
 } while (0)
 
 bool
 jiffy_builder_init(
-  jiffy_builder_t * const w,
+  jiffy_builder_t * const b,
   const jiffy_builder_cbs_t *cbs,
   jiffy_builder_state_t * const stack_ptr,
   const size_t stack_len,
@@ -2160,17 +2161,17 @@ jiffy_builder_init(
   // * the writer context is non-null
   // * the stack memory pointer is non-null
   // * the number of stack memory elements is greater than 1
-  if (!w || !stack_ptr || stack_len < 2) {
+  if (!b || !stack_ptr || stack_len < 2) {
     // return failure
     return false;
   }
 
-  w->cbs = cbs;
-  w->stack_ptr = stack_ptr;
-  w->stack_len = stack_len;
-  w->stack_pos = 0;
-  w->stack_ptr[0] = BUILDER_STATE_INIT;
-  w->user_data = user_data;
+  b->cbs = cbs;
+  b->stack_ptr = stack_ptr;
+  b->stack_len = stack_len;
+  b->stack_pos = 0;
+  b->stack_ptr[0] = BUILDER_STATE_INIT;
+  b->user_data = user_data;
 
   // return success
   return true;
@@ -2178,16 +2179,16 @@ jiffy_builder_init(
 
 bool
 jiffy_builder_fini(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(w)) {
+  switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_INIT:
   case BUILDER_STATE_DONE:
-    BUILDER_FIRE(w, on_fini);
-    BUILDER_SWAP(w, BUILDER_STATE_DONE);
+    BUILDER_FIRE(b, on_fini);
+    BUILDER_SWAP(b, BUILDER_STATE_DONE);
     break;
   default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
 
   // return success
@@ -2196,37 +2197,35 @@ jiffy_builder_fini(
 
 void *
 jiffy_builder_get_user_data(
-  const jiffy_builder_t * const w
+  const jiffy_builder_t * const b
 ) {
-  return w->user_data;
+  return b->user_data;
 }
 
 static inline bool
 jiffy_builder_literal(
-  jiffy_builder_t * const w,
+  jiffy_builder_t * const b,
   const char * const val,
   size_t len
 ) {
-  switch (BUILDER_GET_STATE(w)) {
+  switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_INIT:
-    BUILDER_WRITE(w, val, len);
-    BUILDER_SWAP(w, BUILDER_STATE_DONE);
+    BUILDER_SWAP(b, BUILDER_STATE_DONE);
+    break;
+  case BUILDER_STATE_ARRAY_START:
+    BUILDER_POP(b);
     break;
   case BUILDER_STATE_ARRAY:
-    BUILDER_WRITE(w, val, len);
-    BUILDER_PUSH(w, BUILDER_STATE_ARRAY_AFTER_VALUE);
-    break;
-  case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    BUILDER_WRITE(w, ",", 1);
-    BUILDER_WRITE(w, val, len);
+    BUILDER_WRITE(b, ",", 1);
     break;
   case BUILDER_STATE_OBJECT_VALUE:
-    BUILDER_WRITE(w, val, len);
-    BUILDER_SWAP(w, BUILDER_STATE_OBJECT_AFTER_VALUE);
+    BUILDER_SWAP(b, BUILDER_STATE_OBJECT_AFTER_VALUE);
     break;
   default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
+
+  BUILDER_WRITE(b, val, len);
 
   // return success
   return true;
@@ -2234,23 +2233,23 @@ jiffy_builder_literal(
 
 bool
 jiffy_builder_null(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  return jiffy_builder_literal(w, "null", 4);
+  return jiffy_builder_literal(b, "null", 4);
 }
 
 bool
 jiffy_builder_true(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  return jiffy_builder_literal(w, "true", 4);
+  return jiffy_builder_literal(b, "true", 4);
 }
 
 bool
 jiffy_builder_false(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  return jiffy_builder_literal(w, "false", 5);
+  return jiffy_builder_literal(b, "false", 5);
 }
 
 bool
@@ -2262,11 +2261,14 @@ jiffy_builder_object_start(
   case BUILDER_STATE_ARRAY:
   case BUILDER_STATE_OBJECT_VALUE:
     BUILDER_PUSH(b, BUILDER_STATE_OBJECT);
+    BUILDER_PUSH(b, BUILDER_STATE_OBJECT_KEY);
     BUILDER_WRITE(b, "{", 1);
     break;
-  case BUILDER_STATE_ARRAY_AFTER_VALUE:
+  case BUILDER_STATE_ARRAY_START:
+    BUILDER_POP(b);
     BUILDER_PUSH(b, BUILDER_STATE_OBJECT);
-    BUILDER_WRITE(b, ",{", 2);
+    BUILDER_PUSH(b, BUILDER_STATE_OBJECT_KEY);
+    BUILDER_WRITE(b, "{", 1);
     break;
   default:
     BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
@@ -2278,21 +2280,17 @@ jiffy_builder_object_start(
 
 bool
 jiffy_builder_object_end(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(w)) {
+  switch (BUILDER_GET_STATE(b)) {
+  case BUILDER_STATE_OBJECT_KEY:
   case BUILDER_STATE_OBJECT_AFTER_VALUE:
-  case BUILDER_STATE_OBJECT_VALUE:
-    BUILDER_WRITE(w, "}", 1);
-    BUILDER_POP(w);
-    BUILDER_POP(w);
-    break;
-  case BUILDER_STATE_OBJECT:
-    BUILDER_WRITE(w, "}", 1);
-    BUILDER_POP(w);
+    BUILDER_WRITE(b, "}", 1);
+    BUILDER_POP(b);
+    BUILDER_POP(b);
     break;
   default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
 
   // return success
@@ -2305,19 +2303,23 @@ jiffy_builder_array_start(
 ) {
   switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_INIT:
-  case BUILDER_STATE_ARRAY:
-  case BUILDER_STATE_OBJECT_VALUE:
-    BUILDER_PUSH(b, BUILDER_STATE_ARRAY);
-    BUILDER_WRITE(b, "[", 1);
     break;
-  case BUILDER_STATE_ARRAY_AFTER_VALUE:
+  case BUILDER_STATE_OBJECT_VALUE:
+    BUILDER_SWAP(b, BUILDER_STATE_OBJECT_AFTER_VALUE);
+    break;
+  case BUILDER_STATE_ARRAY:
     BUILDER_WRITE(b, ",", 1);
-    BUILDER_PUSH(b, BUILDER_STATE_ARRAY);
-    BUILDER_WRITE(b, "[", 1);
+    break;
+  case BUILDER_STATE_ARRAY_START:
+    BUILDER_POP(b);
     break;
   default:
     BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
+
+  BUILDER_PUSH(b, BUILDER_STATE_ARRAY);
+  BUILDER_PUSH(b, BUILDER_STATE_ARRAY_START);
+  BUILDER_WRITE(b, "[", 1);
 
   // return success
   return true;
@@ -2328,12 +2330,221 @@ jiffy_builder_array_end(
   jiffy_builder_t * const b
 ) {
   switch (BUILDER_GET_STATE(b)) {
-  case BUILDER_STATE_ARRAY:
-    BUILDER_WRITE(b, "]", 1);
+  case BUILDER_STATE_ARRAY_START:
     BUILDER_POP(b);
     break;
-  case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    BUILDER_WRITE(b, "]", 1);
+  case BUILDER_STATE_ARRAY:
+    break;
+  default:
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
+  }
+
+  BUILDER_WRITE(b, "]", 1);
+  BUILDER_POP(b);
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_builder_number_start(
+  jiffy_builder_t * const b
+) {
+  switch (BUILDER_GET_STATE(b)) {
+  case BUILDER_STATE_INIT:
+  case BUILDER_STATE_OBJECT_VALUE:
+    break;
+  case BUILDER_STATE_ARRAY:
+    BUILDER_WRITE(b, ",", 1);
+    break;
+  case BUILDER_STATE_ARRAY_START:
+    BUILDER_POP(b);
+    break;
+  default:
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
+  }
+
+  BUILDER_PUSH(b, BUILDER_STATE_NUMBER);
+  BUILDER_PUSH(b, BUILDER_STATE_NUMBER_START);
+
+  // return success
+  return true;
+}
+
+static inline bool
+jiffy_builder_number_byte(
+  jiffy_builder_t * const b,
+  const uint8_t byte
+) {
+  switch (BUILDER_GET_STATE(b)) {
+  case BUILDER_STATE_NUMBER_START:
+    switch (byte) {
+    case '+':
+    case '-':
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_AFTER_SIGN);
+      break;
+    case '0':
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO);
+      break;
+    CASE_NONZERO_NUMBER
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_INT);
+      break;
+    default:
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case BUILDER_STATE_NUMBER_AFTER_SIGN:
+    switch (byte) {
+    case '0':
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO);
+      break;
+    CASE_NONZERO_NUMBER
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_INT);
+      break;
+    default:
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO:
+    switch (byte) {
+    case '.':
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_FRAC);
+      break;
+    case 'e':
+    case 'E':
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_EXP_START);
+      break;
+    default:
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case BUILDER_STATE_NUMBER_INT:
+    switch (byte) {
+    CASE_NUMBER
+      BUILDER_WRITE(b, &byte, 1);
+      break;
+    case '.':
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_AFTER_DOT);
+      break;
+    case 'e':
+    case 'E':
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_EXP_START);
+      break;
+    default:
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case BUILDER_STATE_NUMBER_AFTER_DOT:
+    switch (byte) {
+    CASE_NUMBER
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_FRAC);
+      break;
+    default:
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case BUILDER_STATE_NUMBER_FRAC:
+    switch (byte) {
+    CASE_NUMBER
+      BUILDER_WRITE(b, &byte, 1);
+      break;
+    case 'e':
+    case 'E':
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_EXP_START);
+      break;
+    default:
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case BUILDER_STATE_NUMBER_EXP_START:
+    switch (byte) {
+    CASE_NUMBER
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_EXP);
+      break;
+    case '+':
+    case '-':
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_EXP_AFTER_SIGN);
+      break;
+    default:
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case BUILDER_STATE_NUMBER_EXP_AFTER_SIGN:
+    switch (byte) {
+    CASE_NONZERO_NUMBER
+      BUILDER_WRITE(b, &byte, 1);
+      BUILDER_SWAP(b, BUILDER_STATE_NUMBER_EXP);
+      break;
+    default:
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  case BUILDER_STATE_NUMBER_EXP:
+    switch (byte) {
+    CASE_NUMBER
+      BUILDER_WRITE(b, &byte, 1);
+      break;
+    default:
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
+    }
+
+    break;
+  default:
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_builder_number_data(
+  jiffy_builder_t * const b,
+  const void * const ptr,
+  size_t len
+) {
+  const uint8_t * const buf = ptr;
+
+  for (size_t i = 0; i < len; i++) {
+    if (!jiffy_builder_number_byte(b, buf[i])) {
+      return false;
+    }
+  }
+
+  // return success
+  return true;
+}
+
+bool
+jiffy_builder_number_end(
+  jiffy_builder_t * const b
+) {
+  switch (BUILDER_GET_STATE(b)) {
+  case BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO:
+  case BUILDER_STATE_NUMBER_INT:
+  case BUILDER_STATE_NUMBER_FRAC:
+  case BUILDER_STATE_NUMBER_EXP:
     BUILDER_POP(b);
     BUILDER_POP(b);
     break;
@@ -2346,253 +2557,47 @@ jiffy_builder_array_end(
 }
 
 bool
-jiffy_builder_number_start(
-  jiffy_builder_t * const w
-) {
-  switch (BUILDER_GET_STATE(w)) {
-  case BUILDER_STATE_INIT:
-  case BUILDER_STATE_OBJECT_VALUE:
-  case BUILDER_STATE_ARRAY:
-    BUILDER_PUSH(w, BUILDER_STATE_NUMBER);
-    BUILDER_PUSH(w, BUILDER_STATE_NUMBER_START);
-    break;
-  case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    BUILDER_WRITE(w, ",", 1);
-    BUILDER_PUSH(w, BUILDER_STATE_NUMBER);
-    BUILDER_PUSH(w, BUILDER_STATE_NUMBER_START);
-    break;
-  default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
-  }
-
-  // return success
-  return true;
-}
-
-static inline bool
-jiffy_builder_number_byte(
-  jiffy_builder_t * const w,
-  const uint8_t byte
-) {
-  switch (BUILDER_GET_STATE(w)) {
-  case BUILDER_STATE_NUMBER_START:
-    switch (byte) {
-    case '+':
-    case '-':
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_AFTER_SIGN);
-      break;
-    case '0':
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO);
-      break;
-    CASE_NONZERO_NUMBER
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_INT);
-      break;
-    default:
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
-    }
-
-    break;
-  case BUILDER_STATE_NUMBER_AFTER_SIGN:
-    switch (byte) {
-    case '0':
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO);
-      break;
-    CASE_NONZERO_NUMBER
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_INT);
-      break;
-    default:
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
-    }
-
-    break;
-  case BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO:
-    switch (byte) {
-    case '.':
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_FRAC);
-      break;
-    case 'e':
-    case 'E':
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP_START);
-      break;
-    default:
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
-    }
-
-    break;
-  case BUILDER_STATE_NUMBER_INT:
-    switch (byte) {
-    CASE_NUMBER
-      BUILDER_WRITE(w, &byte, 1);
-      break;
-    case '.':
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_AFTER_DOT);
-      break;
-    case 'e':
-    case 'E':
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP_START);
-      break;
-    default:
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
-    }
-
-    break;
-  case BUILDER_STATE_NUMBER_AFTER_DOT:
-    switch (byte) {
-    CASE_NUMBER
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_FRAC);
-      break;
-    default:
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
-    }
-
-    break;
-  case BUILDER_STATE_NUMBER_FRAC:
-    switch (byte) {
-    CASE_NUMBER
-      BUILDER_WRITE(w, &byte, 1);
-      break;
-    case 'e':
-    case 'E':
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP_START);
-      break;
-    default:
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
-    }
-
-    break;
-  case BUILDER_STATE_NUMBER_EXP_START:
-    switch (byte) {
-    CASE_NUMBER
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP);
-      break;
-    case '+':
-    case '-':
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP_AFTER_SIGN);
-      break;
-    default:
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
-    }
-
-    break;
-  case BUILDER_STATE_NUMBER_EXP_AFTER_SIGN:
-    switch (byte) {
-    CASE_NONZERO_NUMBER
-      BUILDER_WRITE(w, &byte, 1);
-      BUILDER_SWAP(w, BUILDER_STATE_NUMBER_EXP);
-      break;
-    default:
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
-    }
-
-    break;
-  case BUILDER_STATE_NUMBER_EXP:
-    switch (byte) {
-    CASE_NUMBER
-      BUILDER_WRITE(w, &byte, 1);
-      break;
-    default:
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
-    }
-
-    break;
-  default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
-  }
-
-  // return success
-  return true;
-}
-
-bool
-jiffy_builder_number_data(
-  jiffy_builder_t * const w,
-  const void * const ptr,
-  size_t len
-) {
-  const uint8_t * const buf = ptr;
-
-  for (size_t i = 0; i < len; i++) {
-    if (!jiffy_builder_number_byte(w, buf[i])) {
-      return false;
-    }
-  }
-
-  // return success
-  return true;
-}
-
-bool
-jiffy_builder_number_end(
-  jiffy_builder_t * const w
-) {
-  switch (BUILDER_GET_STATE(w)) {
-  case BUILDER_STATE_NUMBER_AFTER_LEADING_ZERO:
-  case BUILDER_STATE_NUMBER_INT:
-  case BUILDER_STATE_NUMBER_FRAC:
-  case BUILDER_STATE_NUMBER_EXP:
-    BUILDER_POP(w);
-    BUILDER_POP(w);
-
-    break;
-  default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
-  }
-
-  // return success
-  return true;
-}
-
-bool
-jiffy_builder_number_from_buffer(
-  jiffy_builder_t * const w,
+jiffy_builder_number(
+  jiffy_builder_t * const b,
   const void * const ptr,
   const size_t len
 ) {
   const uint8_t * const buf = ptr;
 
   return (
-    jiffy_builder_number_start(w) &&
-    jiffy_builder_number_data(w, buf, len) &&
-    jiffy_builder_number_end(w)
+    jiffy_builder_number_start(b) &&
+    jiffy_builder_number_data(b, buf, len) &&
+    jiffy_builder_number_end(b)
   );
 }
 
 bool
 jiffy_builder_string_start(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(w)) {
+  switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_INIT:
-  case BUILDER_STATE_OBJECT:
-  case BUILDER_STATE_OBJECT_VALUE:
-    BUILDER_WRITE(w, "\"", 1);
-    BUILDER_PUSH(w, BUILDER_STATE_STRING);
     break;
-  case BUILDER_STATE_ARRAY_AFTER_VALUE:
-    BUILDER_WRITE(w, ",\"", 2);
-    BUILDER_PUSH(w, BUILDER_STATE_STRING);
+  case BUILDER_STATE_OBJECT_KEY:
+    break;
+  case BUILDER_STATE_OBJECT_VALUE:
+    break;
+  case BUILDER_STATE_ARRAY:
+    BUILDER_WRITE(b, ",", 1);
+    break;
+  case BUILDER_STATE_ARRAY_START:
+    BUILDER_POP(b);
     break;
   case BUILDER_STATE_OBJECT_AFTER_VALUE:
-    BUILDER_WRITE(w, ",\"", 2);
-    BUILDER_SWAP(w, BUILDER_STATE_OBJECT_VALUE);
-    BUILDER_PUSH(w, BUILDER_STATE_STRING);
+    BUILDER_WRITE(b, ",", 1);
+    BUILDER_SWAP(b, BUILDER_STATE_OBJECT_KEY);
     break;
   default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
+
+  BUILDER_WRITE(b, "\"", 1);
+  BUILDER_PUSH(b, BUILDER_STATE_STRING);
 
   // return success
   return true;
@@ -2600,50 +2605,50 @@ jiffy_builder_string_start(
 
 static bool
 jiffy_builder_string_byte(
-  jiffy_builder_t * const w,
+  jiffy_builder_t * const b,
   const uint8_t byte
 ) {
-  switch (BUILDER_GET_STATE(w)) {
+  switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_STRING:
     switch (byte) {
     case '\0':
-      BUILDER_FAIL(w, JIFFY_ERR_BAD_BYTE);
+      BUILDER_FAIL(b, JIFFY_ERR_BAD_BYTE);
       break;
     case '\\':
-      BUILDER_WRITE(w, "\\\\", 2);
+      BUILDER_WRITE(b, "\\\\", 2);
       break;
     case '/':
-      BUILDER_WRITE(w, "\\/", 2);
+      BUILDER_WRITE(b, "\\/", 2);
       break;
     case '\"':
-      BUILDER_WRITE(w, "\\\"", 2);
+      BUILDER_WRITE(b, "\\\"", 2);
       break;
       break;
     case '\n':
-      BUILDER_WRITE(w, "\\n", 2);
+      BUILDER_WRITE(b, "\\n", 2);
       break;
     case '\r':
-      BUILDER_WRITE(w, "\\r", 2);
+      BUILDER_WRITE(b, "\\r", 2);
       break;
     case '\t':
-      BUILDER_WRITE(w, "\\t", 2);
+      BUILDER_WRITE(b, "\\t", 2);
       break;
     case '\v':
-      BUILDER_WRITE(w, "\\v", 2);
+      BUILDER_WRITE(b, "\\v", 2);
       break;
     case '\f':
-      BUILDER_WRITE(w, "\\f", 2);
+      BUILDER_WRITE(b, "\\f", 2);
       break;
     case '\b':
-      BUILDER_WRITE(w, "\\b", 2);
+      BUILDER_WRITE(b, "\\b", 2);
       break;
     default:
-      BUILDER_WRITE(w, &byte, 1);
+      BUILDER_WRITE(b, &byte, 1);
     }
 
     break;
   default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
 
   // return success
@@ -2652,14 +2657,14 @@ jiffy_builder_string_byte(
 
 bool
 jiffy_builder_string_data(
-  jiffy_builder_t * const w,
+  jiffy_builder_t * const b,
   const void * const ptr,
   const size_t len
 ) {
   const uint8_t * const buf = ptr;
 
   for (size_t i = 0; i < len; i++) {
-    if (!jiffy_builder_string_byte(w, buf[i])) {
+    if (!jiffy_builder_string_byte(b, buf[i])) {
       return false;
     }
   }
@@ -2670,21 +2675,29 @@ jiffy_builder_string_data(
 
 bool
 jiffy_builder_string_end(
-  jiffy_builder_t * const w
+  jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(w)) {
+  switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_STRING:
-    BUILDER_WRITE(w, "\"", 1);
-    BUILDER_POP(w);
-
-    if (BUILDER_GET_STATE(w) == BUILDER_STATE_OBJECT) {
-      BUILDER_WRITE(w, ":", 1);
-      BUILDER_PUSH(w, BUILDER_STATE_OBJECT_VALUE);
-    }
-
+    BUILDER_WRITE(b, "\"", 1);
+    BUILDER_POP(b);
     break;
   default:
-    BUILDER_FAIL(w, JIFFY_ERR_BAD_STATE);
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
+  }
+
+  switch (BUILDER_GET_STATE(b)) {
+  case BUILDER_STATE_DONE:
+    break;
+  case BUILDER_STATE_OBJECT_KEY:
+    BUILDER_WRITE(b, ":", 1);
+    BUILDER_SWAP(b, BUILDER_STATE_OBJECT_VALUE);
+    break;
+  case BUILDER_STATE_OBJECT_VALUE:
+    BUILDER_SWAP(b, BUILDER_STATE_OBJECT_AFTER_VALUE);
+    break;
+  default:
+    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
 
   // return success
@@ -2692,15 +2705,15 @@ jiffy_builder_string_end(
 }
 
 bool
-jiffy_builder_string_from_buffer(
-  jiffy_builder_t * const w,
+jiffy_builder_string(
+  jiffy_builder_t * const b,
   const void * const ptr,
   const size_t len
 ) {
   return (
-    jiffy_builder_string_start(w) &&
-    jiffy_builder_string_data(w, ptr, len) &&
-    jiffy_builder_string_end(w)
+    jiffy_builder_string_start(b) &&
+    jiffy_builder_string_data(b, ptr, len) &&
+    jiffy_builder_string_end(b)
   );
 }
 

@@ -812,7 +812,7 @@ _Bool jiffy_builder_number_end(
  *
  * Returns false on error.
  */
-_Bool jiffy_builder_number_from_buffer(
+_Bool jiffy_builder_number(
   jiffy_builder_t * const w,
   const void * const,
   const size_t
@@ -852,7 +852,7 @@ _Bool jiffy_builder_string_end(
  *
  * Returns false on error.
  */
-_Bool jiffy_builder_string_from_buffer(
+_Bool jiffy_builder_string(
   jiffy_builder_t * const w,
   const void * const,
   const size_t
