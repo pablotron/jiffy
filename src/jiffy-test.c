@@ -1,3 +1,4 @@
+#include <stdbool.h> // printf()
 #include <stdio.h> // printf()
 #include <string.h> // strlen()
 #include <stdlib.h> // EXIT_*
@@ -8,27 +9,38 @@ extern void test_parser(int, char **);
 extern void test_tree(int, char **);
 extern void test_builder(int, char **);
 static void help(int, char **);
+static void run_all_tests(int, char **);
 
 static const struct {
   const char * const name;
   const char * const text;
   void (* const fn)(int, char **);
+  const bool test;
 } CMDS[] = {{
   .name = "help",
   .text = "print help",
   .fn   = help,
+  .test = false,
+}, {
+  .name = "all",
+  .text = "run all tests",
+  .fn   = run_all_tests,
+  .test = false,
 }, {
   .name = "parser",
   .text = "test jiffy_parser_init()",
   .fn   = test_parser,
+  .test = true,
 }, {
   .name = "tree",
   .text = "test jiffy_tree_new()",
   .fn   = test_tree,
+  .test = true,
 }, {
   .name = "builder",
   .text = "test jiffy_builder_*()",
   .fn   = test_builder,
+  .test = true,
 }, {
   .name = NULL,
 }};
@@ -50,6 +62,14 @@ static void help(int argc, char *argv[]) {
   } else {
     for (size_t i = 0; CMDS[i].name; i++) {
       printf("%s: %s\n", CMDS[i].name, CMDS[i].text);
+    }
+  }
+}
+
+static void run_all_tests(int argc, char *argv[]) {
+  for (int i = 0; CMDS[i].name; i++) {
+    if (CMDS[i].test) {
+      CMDS[i].fn(argc, argv);
     }
   }
 }

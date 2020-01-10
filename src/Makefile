@@ -14,9 +14,7 @@ $(APP): $(OBJS)
 	$(CC) -c -o $@ $(CFLAGS) $<
 
 test: $(APP)
-	./$(APP) parser ./tests/data/corpus.txt
-	./$(APP) tree ./tests/data/corpus.txt
-	./$(APP) builder ./tests/data/corpus.txt
+	./$(APP) all ./tests/data/corpus.txt
 
 clean:
 	$(RM) $(OBJS) $(APP)
