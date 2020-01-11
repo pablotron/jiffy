@@ -543,79 +543,6 @@ const jiffy_value_t *jiffy_object_get_nth_value(
 // forward reference
 typedef struct jiffy_tree_t_ jiffy_tree_t;
 
-typedef struct {
-  // number of bytes in numbers and strings
-  size_t num_bytes;
-
-  // total number of values (including objects)
-  size_t num_vals;
-
-  // total number of objects
-  size_t num_objs;
-
-  // total number of object key/value pairs
-  size_t num_obj_rows;
-
-  // total number of array values across all arrays
-  size_t num_ary_rows;
-
-  // current and maximum depth
-  size_t curr_depth,
-         max_depth;
-
-  // error encountered during scan
-  jiffy_err_t err;
-} jiffy_tree_scan_data_t;
-
-typedef struct {
-  jiffy_value_t *ary;
-  jiffy_value_t *val;
-} jiffy_tree_parse_ary_row_t;
-
-typedef struct {
-  jiffy_value_t *obj;
-  jiffy_value_t *key;
-  jiffy_value_t *val;
-} jiffy_tree_parse_obj_row_t;
-
-typedef struct {
-  // scan data
-  const jiffy_tree_scan_data_t *scan_data;
-
-  // output tree
-  jiffy_tree_t *tree;
-
-  // allocated data for parsing
-  uint8_t *data;
-
-  // current offset into vals
-  size_t vals_ofs;
-
-  // array/value pairs (pointer into data)
-  jiffy_tree_parse_ary_row_t *ary_rows;
-
-  // current offset into ary_rows
-  size_t ary_rows_ofs;
-
-  // object/key/value tuples (pointer into data)
-  jiffy_tree_parse_obj_row_t *obj_rows;
-
-  // current offset into obj_rows
-  size_t obj_rows_ofs;
-
-  // container stack (pointer into data)
-  jiffy_value_t **stack;
-  size_t stack_pos;
-
-  // pointer to byte data (stored in tree memory)
-  uint8_t *bytes;
-
-  // current offset into bytes
-  size_t bytes_ofs;
-
-  jiffy_err_t err;
-} jiffy_tree_parse_data_t;
-
 /**
  * Tree parser callbacks.
  *
@@ -631,12 +558,6 @@ typedef struct {
 
   // Memory free callback (optional, defaults to free() if unspecified).
   void (*free)(void * const, void * const);
-
-  // internal tree scan data
-  void (*on_scan_data)(const jiffy_tree_scan_data_t * const, void * const);
-
-  // internal tree parse data
-  void (*on_parse_data)(const jiffy_tree_parse_data_t * const, void * const);
 
   // Error callback (optional).  Called by the tree parser if an error
   // occurs during parsing.

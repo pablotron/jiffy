@@ -104,94 +104,6 @@ dump_value(
   fprintf(stderr, "\n");
 }
 
-/* 
- * static void
- * dump_scan_data(
- *   const jiffy_tree_scan_data_t * const data
- * ) {
- *   warnx("scan_data->num_bytes = %zu", data->num_bytes);
- *   warnx("scan_data->num_vals = %zu", data->num_vals);
- *   warnx("scan_data->num_objs = %zu", data->num_objs);
- *   warnx("scan_data->num_obj_rows = %zu", data->num_obj_rows);
- *   // warnx("scan_data->num_arys = %zu", data->num_arys);
- *   warnx("scan_data->num_ary_rows = %zu", data->num_ary_rows);
- *   warnx("scan_data->curr_depth = %zu", data->curr_depth);
- *   warnx("scan_data->max_depth = %zu", data->max_depth);
- * }
- */ 
-
-static void
-dump_parse_data(
-  const jiffy_tree_parse_data_t * const data
-) {
-  // dump_scan_data(data->scan_data);
-
-  const jiffy_value_t * const vals = data->tree->vals;
-
-/* 
- *   warnx("data->data = %p", (void*) data->data);
- *   warnx("data->ary_rows = %p", (void*) data->ary_rows);
- *   warnx("data->ary_rows_ofs = %zu", data->ary_rows_ofs);
- *   warnx("scan_data->num_ary_rows = %zu", data->scan_data->num_ary_rows);
- *   warnx("data->ary_rows - data->data = %zu", (uint8_t*) data->ary_rows - (uint8_t*) data->data);
- *   warnx("sizeof(jiffy_tree_parse_ary_row_t) = %zu", sizeof(jiffy_tree_parse_ary_row_t));
- *   warnx("data->obj_rows = %p", (void*) data->obj_rows);
- *   warnx("data->obj_rows_ofs = %zu", data->obj_rows_ofs);
- *   warnx("scan_data->num_obj_rows = %zu", data->scan_data->num_obj_rows);
- *   warnx("data->obj_rows - data->data = %zu", (uint8_t*) data->obj_rows - (uint8_t*) data->data);
- *   warnx("sizeof(jiffy_tree_parse_obj_row_t) = %zu", sizeof(jiffy_tree_parse_obj_row_t));
- *   warnx("data->stack = %p", (void*) data->stack);
- *   warnx("data->stack - data->data = %zu", (uint8_t*) data->stack - (uint8_t*) data->data);
- */ 
-
-/* 
- *   for (size_t i = 0; i < data->vals_ofs; i++) {
- *     warnx("test-tree: data->vals[%zu] = %s", i, jiffy_type_to_s(vals[i].type));
- *   }
- */ 
-
-/* 
- *   warnx("test-tree: data->ary_rows_ofs = %zu", data->ary_rows_ofs);
- *   for (size_t i = 0; i < data->ary_rows_ofs; i++) {
- *     const jiffy_tree_parse_ary_row_t * const row = data->ary_rows + i;
- *     warnx(
- *       "test-tree: data->ary_rows[%zu] = { .ary = %td, .val = %td }",
- *       i,
- *       row[i].ary - vals,
- *       row[i].val - vals
- *     );
- *   }
- */ 
-
-  warnx("test-tree: data->obj_rows_ofs = %zu", data->obj_rows_ofs);
-  for (size_t i = 0; i < data->obj_rows_ofs; i++) {
-    const jiffy_tree_parse_obj_row_t * const row = data->obj_rows + i;
-    warnx(
-      "test-tree: data->obj_rows[%zu] = { .obj = %td, .key = %td, .val = %td }",
-      i,
-      row->obj - vals,
-      row->key - vals,
-      row->val - vals
-    );
-  }
-
-/* 
- *   warnx("test-tree: data->bytes_ofs = %zu", data->bytes_ofs);
- *   fputs("test-tree: bytes = ", stderr);
- *   fwrite(data->bytes, data->bytes_ofs, 1, stderr);
- *   fputs("\n", stderr);
- */ 
-}
-
-static void
-on_parse_data(
-  const jiffy_tree_parse_data_t * const parse_data,
-  void * const user_data
-) {
-  (void) user_data;
-  dump_parse_data(parse_data);
-}
-
 static void
 on_parse_error(
   const jiffy_tree_t * const tree,
@@ -203,7 +115,6 @@ on_parse_error(
 
 static const jiffy_tree_cbs_t
 TREE_CBS = {
-  .on_parse_data = on_parse_data,
   .on_error      = on_parse_error,
 };
 
