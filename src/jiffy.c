@@ -1,5 +1,5 @@
 #include <stdbool.h> // bool
-#include <stdlib.h> // malloc(), free()
+#include <stdlib.h> // malloc(), free(), qsort()
 #include "jiffy.h"
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
