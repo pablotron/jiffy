@@ -105,14 +105,32 @@ dump_value(
 }
 
 static void
+dump_scan_data(
+  const jiffy_tree_scan_data_t * const data
+) {
+  warnx("scan_data->num_bytes = %zu", data->num_bytes);
+  warnx("scan_data->num_vals = %zu", data->num_vals);
+  warnx("scan_data->num_objs = %zu", data->num_objs);
+  warnx("scan_data->num_obj_rows = %zu", data->num_obj_rows);
+  // warnx("scan_data->num_arys = %zu", data->num_arys);
+  warnx("scan_data->num_ary_rows = %zu", data->num_ary_rows);
+  warnx("scan_data->curr_depth = %zu", data->curr_depth);
+  warnx("scan_data->max_depth = %zu", data->max_depth);
+}
+
+static void
 dump_parse_data(
   const jiffy_tree_parse_data_t * const data
 ) {
+  dump_scan_data(data->scan_data);
+
   const jiffy_value_t * const vals = data->tree->vals;
+
   for (size_t i = 0; i < data->num_vals; i++) {
     warnx("data->vals[%zu] = %s", i, jiffy_type_to_s(vals[i].type));
   }
 
+  warnx("data->num_ary_rows = %zu", data->num_ary_rows);
   for (size_t i = 0; i < data->num_ary_rows; i++) {
     const jiffy_tree_parse_ary_row_t * const row = data->ary_rows + i;
     warnx(
@@ -121,6 +139,7 @@ dump_parse_data(
     );
   }
 
+  warnx("data->num_obj_rows = %zu", data->num_obj_rows);
   for (size_t i = 0; i < data->num_obj_rows; i++) {
     const jiffy_tree_parse_obj_row_t * const row = data->obj_rows + i;
     warnx(
@@ -128,6 +147,11 @@ dump_parse_data(
       i, row[i].obj - vals, row[i].key - vals, row[i].val - vals
     );
   }
+
+  warnx("data->num_bytes = %zu", data->num_bytes);
+  fputs("bytes = ", stderr);
+  fwrite(data->bytes, data->num_bytes, 1, stderr);
+  fputs("\n", stderr);
 }
 
 static void
@@ -139,8 +163,19 @@ on_parse_data(
   dump_parse_data(data);
 }
 
-static const jiffy_tree_cbs_t TREE_CBS = {
+static void
+on_parse_error(
+  const jiffy_tree_t * const tree,
+  const jiffy_err_t err
+) {
+  (void) tree;
+  errx(EXIT_FAILURE, "parse error: %s", jiffy_err_to_s(err));
+}
+
+static const jiffy_tree_cbs_t
+TREE_CBS = {
   .on_parse_data = on_parse_data,
+  .on_error      = on_parse_error,
 };
 
 void test_tree(int argc, char *argv[]) {
