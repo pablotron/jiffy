@@ -449,6 +449,46 @@ const jiffy_value_t *jiffy_array_get_nth(
 );
 
 /**
+ * Iterate through each value in the given array.
+ *
+ * Returns false if the given value is not an object.
+ */
+_Bool jiffy_array_each(
+  // array value
+  const jiffy_value_t * const,
+
+  // callback
+  void (*each_cb)(
+    // element index
+    const size_t,
+
+    // element value
+    const jiffy_value_t * const,
+
+    // callback data
+    void *
+  ),
+
+  // callback data
+  void *
+);
+
+/**
+ * Get the Nth value of the given array (unsafe)
+ *
+ * This method performs no type or bounds check, and will return garbage
+ * if called on a non-array value or with an index that is out of
+ * range.
+ */
+const jiffy_value_t *jiffy_array_unsafe_get_nth(
+  // array value
+  const jiffy_value_t * const,
+
+  // offset
+  const size_t
+);
+
+/**
  * Get the number of elements in the given object value.
  *
  * Note: Results are undefined if the given value is not an object.
@@ -479,6 +519,61 @@ const jiffy_value_t *jiffy_object_get_nth_key(
  * is out of bounds.
  */
 const jiffy_value_t *jiffy_object_get_nth_value(
+  // object value
+  const jiffy_value_t * const,
+
+  // offset
+  const size_t ofs
+);
+
+/**
+ * Iterate through each key/value pair in the given object.
+ *
+ * Returns false if the given value is not an object.
+ */
+_Bool jiffy_object_each(
+  // object value
+  const jiffy_value_t * const,
+
+  // callback
+  void (*each_cb)(
+    // key of value pair
+    const jiffy_value_t * const,
+
+    // value of value pair
+    const jiffy_value_t * const,
+
+    // callback data
+    void *
+  ),
+
+  // callback data
+  void *
+);
+
+/**
+ * Get the Nth key of the given object (unsafe).
+ *
+ * This method performs no type or bounds check, and will return garbage
+ * if called on a non-object value or with an index that is out of
+ * range.
+ */
+const jiffy_value_t *jiffy_object_unsafe_get_nth_key(
+  // object value
+  const jiffy_value_t * const,
+
+  // offset
+  const size_t
+);
+
+/**
+ * Get the Nth value of the given object (unsafe).
+ *
+ * This method performs no type or bounds check, and will return garbage
+ * if called on a non-object value or with an index that is out of
+ * range.
+ */
+const jiffy_value_t *jiffy_object_unsafe_get_nth_value(
   // object value
   const jiffy_value_t * const,
 
@@ -655,8 +750,7 @@ _Bool jiffy_builder_fini(
 /**
  * Return user data associated with builder.
  */
-void *
-jiffy_builder_get_user_data(
+void *jiffy_builder_get_user_data(
   // pointer to builder context (required)
   const jiffy_builder_t * const
 );
@@ -809,8 +903,7 @@ _Bool jiffy_builder_string(
  *
  * Note: The string returned by this method is read-only.
  */
-const char *
-jiffy_builder_state_to_s(
+const char *jiffy_builder_state_to_s(
   const jiffy_builder_state_t
 );
 
@@ -819,8 +912,7 @@ jiffy_builder_state_to_s(
  *
  * Note: The array returned by this method is read-only.
  */
-const jiffy_builder_state_t *
-jiffy_builder_get_stack(
+const jiffy_builder_state_t *jiffy_builder_get_stack(
   const jiffy_builder_t * const,
   size_t * const
 );

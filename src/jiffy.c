@@ -1058,6 +1058,16 @@ jiffy_array_get_size(
   return val->v_ary.len;
 }
 
+#define ARY_NTH_VAL(ary, ofs) ((ary)->v_ary.vals[ofs])
+
+const jiffy_value_t *
+jiffy_array_unsafe_get_nth(
+  const jiffy_value_t * const val,
+  const size_t ofs
+) {
+  return ARY_NTH_VAL(val, ofs);
+}
+
 const jiffy_value_t *
 jiffy_array_get_nth(
   const jiffy_value_t * const val,
@@ -1071,7 +1081,28 @@ jiffy_array_get_nth(
     (ofs < val->v_ary.len)
   );
 
-  return is_valid ? val->v_ary.vals[ofs] : NULL;
+  return is_valid ? ARY_NTH_VAL(val, ofs) : NULL;
+}
+
+bool
+jiffy_array_each(
+  const jiffy_value_t * const ary,
+  void (*each_cb)(const size_t, const jiffy_value_t *, void *),
+  void * const user_data
+) {
+  if (jiffy_value_get_type(ary) != JIFFY_TYPE_ARRAY) {
+    // return failure
+    return false;
+  }
+
+  if (each_cb) {
+    for (size_t i = 0; i < jiffy_array_get_size(ary); i++) {
+      each_cb(i, ARY_NTH_VAL(ary, i), user_data);
+    }
+  }
+
+  // return success
+  return true;
 }
 
 size_t
@@ -1079,6 +1110,17 @@ jiffy_object_get_size(
   const jiffy_value_t * const val
 ) {
   return val->v_obj.len;
+}
+
+#define OBJ_NTH_KEY(obj, ofs) ((obj)->v_obj.vals[2 * (ofs)])
+#define OBJ_NTH_VAL(obj, ofs) ((obj)->v_obj.vals[2 * (ofs) + 1])
+
+const jiffy_value_t *
+jiffy_object_unsafe_get_nth_key(
+  const jiffy_value_t * const val,
+  const size_t ofs
+) {
+  return OBJ_NTH_KEY(val, ofs);
 }
 
 const jiffy_value_t *
@@ -1094,7 +1136,15 @@ jiffy_object_get_nth_key(
     (ofs < val->v_obj.len)
   );
 
-  return is_valid ? val->v_obj.vals[2 * ofs] : NULL;
+  return is_valid ? OBJ_NTH_KEY(val, ofs) : NULL;
+}
+
+const jiffy_value_t *
+jiffy_object_unsafe_get_nth_value(
+  const jiffy_value_t * const val,
+  const size_t ofs
+) {
+  return OBJ_NTH_VAL(val, ofs);
 }
 
 const jiffy_value_t *
@@ -1110,7 +1160,32 @@ jiffy_object_get_nth_value(
     (ofs < val->v_obj.len)
   );
 
-  return is_valid ? val->v_obj.vals[2 * ofs + 1] : NULL;
+  return is_valid ? OBJ_NTH_VAL(val, ofs) : NULL;
+}
+
+bool
+jiffy_object_each(
+  const jiffy_value_t * const obj,
+  void (*each_cb)(const jiffy_value_t *, const jiffy_value_t *, void *),
+  void * const user_data
+) {
+  if (jiffy_value_get_type(obj) != JIFFY_TYPE_OBJECT) {
+    // return failure
+    return false;
+  }
+
+  if (each_cb) {
+    for (size_t i = 0; i < jiffy_object_get_size(obj); i++) {
+      each_cb(
+        OBJ_NTH_KEY(obj, i),
+        OBJ_NTH_VAL(obj, i),
+        user_data
+      );
+    }
+  }
+
+  // return success
+  return true;
 }
 
 typedef struct {
