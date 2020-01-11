@@ -588,24 +588,30 @@ typedef struct {
   // allocated data for parsing
   uint8_t *data;
 
-  // number of values
-  size_t num_vals;
+  // current offset into vals
+  size_t vals_ofs;
+
+  // array/value pairs (pointer into data)
+  jiffy_tree_parse_ary_row_t *ary_rows;
+
+  // current offset into ary_rows
+  size_t ary_rows_ofs;
+
+  // object/key/value tuples (pointer into data)
+  jiffy_tree_parse_obj_row_t *obj_rows;
+
+  // current offset into obj_rows
+  size_t obj_rows_ofs;
 
   // container stack (pointer into data)
   jiffy_value_t **stack;
   size_t stack_pos;
 
-  // array/value pairs (pointer into data)
-  jiffy_tree_parse_ary_row_t *ary_rows;
-  size_t num_ary_rows;
-
-  // object/key/value tuples (pointer into data)
-  jiffy_tree_parse_obj_row_t *obj_rows;
-  size_t num_obj_rows;
-
-  // pointer to output byte data
+  // pointer to byte data (stored in tree memory)
   uint8_t *bytes;
-  size_t num_bytes;
+
+  // current offset into bytes
+  size_t bytes_ofs;
 
   jiffy_err_t err;
 } jiffy_tree_parse_data_t;
