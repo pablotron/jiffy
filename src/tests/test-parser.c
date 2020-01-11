@@ -126,14 +126,6 @@ static void on_number_byte(
   warnx("D: number byte = %02x", byte);
 }
 
-static void on_number_flags(
-  const jiffy_parser_t * const p,
-  const uint32_t flags
-) {
-  (void) p;
-  warnx("D: number flags = %02x", flags);
-}
-
 static void on_true(
   const jiffy_parser_t * const p
 ) {
@@ -173,7 +165,6 @@ static const jiffy_parser_cbs_t CBS = {
   .on_number_start        = on_number_start,
   .on_number_end          = on_number_end,
   .on_number_byte         = on_number_byte,
-  .on_number_flags        = on_number_flags,
   .on_true                = on_true,
   .on_false               = on_false,
   .on_null                = on_null,

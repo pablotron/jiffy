@@ -58,38 +58,6 @@ const char *jiffy_err_to_s(
   const jiffy_err_t
 );
 
-#define JIFFY_WARNING_LIST \
-  JIFFY_DEF_WARNING(UTF16_BOM, "encountered UTF-16 byte order mark"), \
-  JIFFY_DEF_WARNING(UTF8_BOM, "encountered UTF-8 byte order mark"), \
-  JIFFY_DEF_WARNING(LAST, "unknown warning"),
-
-/**
- * Warning codes.  A warning indicates a non-fatal problem with the
- * input that you may wish to be aware of, such as the presence of a
- * byte order mark.
- *
- * These are passed to the on_warning callback when the jiffy_parser_*()
- * functions encounter a warning.
- *
- * You can use jiffy_warning_to_s() to get a text description of the
- * warning code.
- */
-typedef enum {
-#define JIFFY_DEF_WARNING(a, b) JIFFY_WARNING_##a
-JIFFY_WARNING_LIST
-#undef JIFFY_DEF_WARNING
-} jiffy_warning_t;
-
-/**
- * Convert an warning code to human-readable text.
- *
- * Note: The string returned by this method is read-only.
- */
-const char *jiffy_warning_to_s(
-  // warning code
-  const jiffy_warning_t
-);
-
 /**
  * Parser state.
  *
@@ -98,14 +66,6 @@ const char *jiffy_warning_to_s(
  * on architectures which do not allow unaligned access (e.g., ARM).
  */
 typedef uint32_t jiffy_parser_state_t;
-
-typedef enum {
-  // number contains a decimal component
-  JIFFY_NUMBER_FLAG_FRAC = 0x01,
-
-  // number contains an exponent
-  JIFFY_NUMBER_FLAG_EXP  = 0x02,
-} jiffy_number_flag_t;
 
 /**
  * Convert a internal parser state to human-readable text.
@@ -153,6 +113,12 @@ typedef void (*jiffy_parser_byte_cb_t)(
  * Note: Any or all of these callback pointers may be NULL.
  */
 typedef struct {
+  // encountered a UTF-8 BOM.
+  const jiffy_parser_cb_t on_utf8_bom;
+
+  // encountered a UTF-16 BOM.
+  const jiffy_parser_cb_t on_utf16_bom;
+
   // literal null value.
   const jiffy_parser_cb_t on_null;
 
@@ -219,26 +185,6 @@ typedef struct {
 
   // fired if a number contains a exponent component
   const jiffy_parser_cb_t on_number_exponent;
-
-  // fired just before the end of a number value; contains a
-  // union of the jiffy_number_flag_t flags.
-  void (*on_number_flags)(
-    // pointer to parser context.
-    const jiffy_parser_t *,
-
-    // number flags
-    const uint32_t
-  );
-
-  // fired when the parser encounters a non-fatal condition, such as the
-  // presence of a byte order mark
-  void (*on_warning)(
-    // pointer to parser context.
-    const jiffy_parser_t *,
-
-    // warning code
-    const jiffy_warning_t
-  );
 
   void (*on_error)(
     // pointer to parser context.

@@ -100,24 +100,6 @@ jiffy_err_to_s(
 }
 
 /**
- * Warning strings.  Used by jiffy_warning_to_s().
- */
-static const char *
-JIFFY_WARNINGS[] = {
-#define JIFFY_DEF_WARNING(a, b) b
-JIFFY_WARNING_LIST
-#undef JIFFY_DEF_WARNING
-};
-
-const char *
-jiffy_warning_to_s(
-  const jiffy_warning_t code
-) {
-  const size_t ofs = (code < JIFFY_WARNING_LAST) ? code : JIFFY_WARNING_LAST;
-  return JIFFY_WARNINGS[ofs];
-}
-
-/**
  * Parser states.
  */
 #define JIFFY_PARSER_STATE_LIST \
@@ -403,7 +385,7 @@ retry:
   case PARSER_STATE_BOM_UTF16_X:
     switch (byte) {
     case 0xFF:
-      EMIT(p, on_warning, JIFFY_WARNING_UTF16_BOM);
+      FIRE(p, on_utf16_bom);
       SWAP(p, PARSER_STATE_VALUE);
       break;
     default:
@@ -424,8 +406,8 @@ retry:
   case PARSER_STATE_BOM_UTF8_XX:
     switch (byte) {
     case 0xBF:
-      EMIT(p, on_warning, JIFFY_WARNING_UTF8_BOM);
-      POP(p);
+      FIRE(p, on_utf8_bom);
+      SWAP(p, PARSER_STATE_VALUE);
       break;
     default:
       FAIL(p, JIFFY_ERR_BAD_UTF8_BOM);
