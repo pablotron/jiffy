@@ -1,5 +1,6 @@
 #include <stdbool.h> // bool
 #include <stdlib.h> // malloc(), free()
+#include <err.h>
 #include "jiffy.h"
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -1570,14 +1571,14 @@ jiffy_tree_parse_data_malloc(
 ) {
   // calculate total number of bytes needed for parse data
   const size_t bytes_needed = (
-    // space for object stack
-    sizeof(jiffy_value_t*) * scan_data->max_depth +
-
     // space for array rows
     sizeof(jiffy_tree_parse_ary_row_t) * scan_data->num_ary_rows +
 
     // space for object rows
-    sizeof(jiffy_tree_parse_obj_row_t) * scan_data->num_obj_rows
+    sizeof(jiffy_tree_parse_obj_row_t) * scan_data->num_obj_rows +
+
+    // space for object stack
+    sizeof(jiffy_value_t*) * scan_data->max_depth
   );
 
   // allocate and return memory
@@ -1612,20 +1613,20 @@ tree_parse_fill_ary_rows(
   );
 
   // get output row pointer
-  jiffy_value_t ** const rows = (jiffy_value_t**) (
+  jiffy_value_t ** const vals = (jiffy_value_t**) (
     parse_data->tree->data
   );
 
   jiffy_value_t *curr = NULL;
   for (size_t i = 0; i < parse_data->num_ary_rows; i++) {
     if (curr != parse_data->ary_rows[i].ary) {
-      // set array vals pointer
-      parse_data->ary_rows[i].ary->v_ary.vals = rows + i;
+      // get current ary, set array vals pointer
       curr = parse_data->ary_rows[i].ary;
+      curr->v_ary.vals = vals + i;
     }
 
     // populate value
-    rows[i] = parse_data->ary_rows[i].val;
+    vals[i] = parse_data->ary_rows[i].val;
   }
 }
 
@@ -1648,6 +1649,24 @@ static void
 tree_parse_fill_obj_rows(
   const jiffy_tree_parse_data_t * const parse_data
 ) {
+  // get output pointer
+  jiffy_value_t ** const vals = (jiffy_value_t**) (
+    parse_data->tree->data +
+    sizeof(jiffy_value_t*) * parse_data->num_ary_rows
+  );
+
+  for (size_t i = 0; i < parse_data->num_obj_rows; i++) {
+    const jiffy_tree_parse_obj_row_t * const row = parse_data->obj_rows + i;
+
+    warnx(
+      "parse_data->obj_rows[%zu] = { .obj = %zd, .key = %zd, .data = %zd }",
+      i,
+      (jiffy_value_t*) row->obj - (jiffy_value_t*) vals,
+      (jiffy_value_t*) row->key - (jiffy_value_t*) vals,
+      (jiffy_value_t*) row->val - (jiffy_value_t*) vals
+    );
+  }
+
   // sort object rows
   qsort(
     parse_data->obj_rows,
@@ -1656,23 +1675,27 @@ tree_parse_fill_obj_rows(
     tree_parse_obj_row_sort_cb
   );
 
-  // get output pointer
-  jiffy_value_t ** const vals = (jiffy_value_t**) (
-    parse_data->tree->data +
-    sizeof(jiffy_value_t*) * parse_data->num_ary_rows
-  );
-
   jiffy_value_t *curr = NULL;
   for (size_t i = 0; i < parse_data->num_obj_rows; i++) {
-    if (curr != parse_data->obj_rows[i].obj) {
-      // set object vals pointer
-      parse_data->obj_rows[i].obj->v_obj.vals = vals + 2 * i;
-      curr = parse_data->obj_rows[i].obj;
+    const jiffy_tree_parse_obj_row_t * const row = parse_data->obj_rows + i;
+
+    if (curr != row->obj) {
+      // get current object, set object vals pointer
+      curr = row->obj;
+      curr->v_obj.vals = vals + 2 * i;
     }
 
+    warnx(
+      "parse_data->obj_rows[%zu] = { .obj = %zd, .key = %zd, .data = %zd }",
+      i,
+      (jiffy_value_t*) row->obj - (jiffy_value_t*) vals,
+      (jiffy_value_t*) row->key - (jiffy_value_t*) vals,
+      (jiffy_value_t*) row->val - (jiffy_value_t*) vals
+    );
+
     // populate key/value
-    vals[2 * i] = parse_data->obj_rows[i].key;
-    vals[2 * i + 1] = parse_data->obj_rows[i].val;
+    vals[2 * i] = row->key;
+    vals[2 * i + 1] = row->val;
   }
 }
 
@@ -1737,7 +1760,6 @@ jiffy_tree_new_ex(
       sizeof(jiffy_value_t*) * 2 * scan_data.num_obj_rows
     );
 
-
     // allocate parse data memory, check for error
     uint8_t * const parse_mem = jiffy_tree_parse_data_malloc(tree, &scan_data);
     if (!parse_mem) {
@@ -1758,28 +1780,32 @@ jiffy_tree_new_ex(
       // number of values parsed so far
       .num_vals = 0,
 
-      // container stack and depth
-      .stack = (jiffy_value_t**) parse_mem,
-      .stack_pos = 0,
-
-      // array rows
+      // array rows (subset of parse_mem)
       .ary_rows = (jiffy_tree_parse_ary_row_t*) (
-        parse_mem +
-        sizeof(jiffy_value_t*) * scan_data.max_depth
+        parse_mem
       ),
 
       // number of array rows
       .num_ary_rows = 0,
 
-      // object rows
+      // object rows (subset of parse_mem)
       .obj_rows = (jiffy_tree_parse_obj_row_t*) (
         parse_mem +
-        sizeof(jiffy_value_t*) * scan_data.max_depth +
         sizeof(jiffy_tree_parse_ary_row_t) * scan_data.num_ary_rows
       ),
 
       // number of object rows
       .num_obj_rows = 0,
+
+      // container stack memory (subset of parse_mem)
+      .stack = (jiffy_value_t**) (
+        parse_mem +
+        sizeof(jiffy_tree_parse_ary_row_t) * scan_data.num_ary_rows +
+        sizeof(jiffy_tree_parse_obj_row_t) * scan_data.num_obj_rows
+      ),
+
+      // container stack depth
+      .stack_pos = 0,
 
       // byte data
       .bytes = (
