@@ -2248,14 +2248,11 @@ jiffy_builder_get_user_data(
 }
 
 static inline bool
-jiffy_builder_literal(
-  jiffy_builder_t * const b,
-  const char * const val,
-  size_t len
+jiffy_builder_value_start(
+  jiffy_builder_t * const b
 ) {
   switch (BUILDER_GET_STATE(b)) {
   case BUILDER_STATE_INIT:
-    BUILDER_SWAP(b, BUILDER_STATE_DONE);
     break;
   case BUILDER_STATE_ARRAY_START:
     BUILDER_POP(b);
@@ -2270,6 +2267,16 @@ jiffy_builder_literal(
     BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
   }
 
+  return true;
+}
+
+static inline bool
+jiffy_builder_literal(
+  jiffy_builder_t * const b,
+  const char * const val,
+  size_t len
+) {
+  jiffy_builder_value_start(b);
   BUILDER_WRITE(b, val, len);
 
   // return success
@@ -2301,23 +2308,13 @@ bool
 jiffy_builder_object_start(
   jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(b)) {
-  case BUILDER_STATE_INIT:
-  case BUILDER_STATE_ARRAY:
-  case BUILDER_STATE_OBJECT_VALUE:
-    BUILDER_PUSH(b, BUILDER_STATE_OBJECT);
-    BUILDER_PUSH(b, BUILDER_STATE_OBJECT_KEY);
-    BUILDER_WRITE(b, "{", 1);
-    break;
-  case BUILDER_STATE_ARRAY_START:
-    BUILDER_POP(b);
-    BUILDER_PUSH(b, BUILDER_STATE_OBJECT);
-    BUILDER_PUSH(b, BUILDER_STATE_OBJECT_KEY);
-    BUILDER_WRITE(b, "{", 1);
-    break;
-  default:
-    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
+  if (!jiffy_builder_value_start(b)) {
+    return false;
   }
+
+  BUILDER_PUSH(b, BUILDER_STATE_OBJECT);
+  BUILDER_PUSH(b, BUILDER_STATE_OBJECT_KEY);
+  BUILDER_WRITE(b, "{", 1);
 
   // return success
   return true;
@@ -2346,20 +2343,8 @@ bool
 jiffy_builder_array_start(
   jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(b)) {
-  case BUILDER_STATE_INIT:
-    break;
-  case BUILDER_STATE_OBJECT_VALUE:
-    BUILDER_SWAP(b, BUILDER_STATE_OBJECT_AFTER_VALUE);
-    break;
-  case BUILDER_STATE_ARRAY:
-    BUILDER_WRITE(b, ",", 1);
-    break;
-  case BUILDER_STATE_ARRAY_START:
-    BUILDER_POP(b);
-    break;
-  default:
-    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
+  if (!jiffy_builder_value_start(b)) {
+    return false;
   }
 
   BUILDER_PUSH(b, BUILDER_STATE_ARRAY);
@@ -2395,18 +2380,8 @@ bool
 jiffy_builder_number_start(
   jiffy_builder_t * const b
 ) {
-  switch (BUILDER_GET_STATE(b)) {
-  case BUILDER_STATE_INIT:
-  case BUILDER_STATE_OBJECT_VALUE:
-    break;
-  case BUILDER_STATE_ARRAY:
-    BUILDER_WRITE(b, ",", 1);
-    break;
-  case BUILDER_STATE_ARRAY_START:
-    BUILDER_POP(b);
-    break;
-  default:
-    BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
+  if (!jiffy_builder_value_start(b)) {
+    return false;
   }
 
   BUILDER_PUSH(b, BUILDER_STATE_NUMBER);
@@ -2737,9 +2712,6 @@ jiffy_builder_string_end(
   case BUILDER_STATE_OBJECT_KEY:
     BUILDER_WRITE(b, ":", 1);
     BUILDER_SWAP(b, BUILDER_STATE_OBJECT_VALUE);
-    break;
-  case BUILDER_STATE_OBJECT_VALUE:
-    BUILDER_SWAP(b, BUILDER_STATE_OBJECT_AFTER_VALUE);
     break;
   default:
     BUILDER_FAIL(b, JIFFY_ERR_BAD_STATE);
