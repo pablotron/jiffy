@@ -210,6 +210,16 @@ typedef struct {
   // end of a number value.
   const jiffy_parser_cb_t on_number_end;
 
+  // sign (+ or -) of a number value
+  // (optional)
+  const jiffy_parser_byte_cb_t on_number_sign;
+
+  // fired if a number contains a fractional component
+  const jiffy_parser_cb_t on_number_fraction;
+
+  // fired if a number contains a exponent component
+  const jiffy_parser_cb_t on_number_exponent;
+
   // fired just before the end of a number value; contains a
   // union of the jiffy_number_flag_t flags.
   void (*on_number_flags)(
@@ -268,12 +278,8 @@ struct jiffy_parser_t_ {
   union {
     struct {
       // parsed hex value.  used to decode unicode escape sequences.
-      uint8_t hex;
+      uint32_t hex;
     } v_str;
-
-    struct {
-      uint32_t flags;
-    } v_num;
   };
 
   // opaque pointer to user data.  Provided by user via a
@@ -291,8 +297,7 @@ struct jiffy_parser_t_ {
  * - the stack memory pointer is NULL
  * - the number of stack memory elements is less than 2
  */
-_Bool
-jiffy_parser_init(
+_Bool jiffy_parser_init(
   // pointer to parser context (required)
   jiffy_parser_t * const,
 
@@ -312,8 +317,7 @@ jiffy_parser_init(
 /**
  * Return user data associated with parser.
  */
-void *
-jiffy_parser_get_user_data(
+void *jiffy_parser_get_user_data(
   // pointer to parser context (required)
   const jiffy_parser_t * const
 );
@@ -321,8 +325,7 @@ jiffy_parser_get_user_data(
 /**
  * Return number of bytes parsed by parser.
  */
-size_t
-jiffy_parser_get_num_bytes(
+size_t jiffy_parser_get_num_bytes(
   // pointer to parser context (required)
   const jiffy_parser_t * const
 );
@@ -333,8 +336,7 @@ jiffy_parser_get_num_bytes(
  * Returns true on success.  If an error occurs, the on_error callback
  * is called with an error code, and this function return false.
  */
-_Bool
-jiffy_parser_push(
+_Bool jiffy_parser_push(
   // pointer to parser context (required)
   jiffy_parser_t * const,
 
@@ -355,8 +357,7 @@ jiffy_parser_push(
  * Returns true on success.  If an error occurs, the on_error callback
  * is called with an error code, and this function return false.
  */
-_Bool
-jiffy_parser_fini(
+_Bool jiffy_parser_fini(
   // pointer to parser context (required)
   jiffy_parser_t * const
 );
@@ -368,8 +369,7 @@ jiffy_parser_fini(
  * callback is called with an error code, and this function return
  * false.
  */
-_Bool
-jiffy_parse(
+_Bool jiffy_parse(
   // pointer to parser callback structure (optional, may be NULL)
   const jiffy_parser_cbs_t * const,
 
@@ -858,11 +858,21 @@ _Bool jiffy_builder_string(
   const size_t
 );
 
+/**
+ * Convert builder state to human-readable text.
+ *
+ * Note: The string returned by this method is read-only.
+ */
 const char *
 jiffy_builder_state_to_s(
   const jiffy_builder_state_t
 );
 
+/**
+ * Get the state stack of this builder.
+ *
+ * Note: The array returned by this method is read-only.
+ */
 const jiffy_builder_state_t *
 jiffy_builder_get_stack(
   const jiffy_builder_t * const,

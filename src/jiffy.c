@@ -218,13 +218,6 @@ jiffy_parser_state_to_s(
   } \
 } while (0)
 
-// call given callback with byte value, if it is non-NULL
-#define EMIT_FLAGS(p, cb_name, flags) do { \
-  if ((p)->cbs && (p)->cbs->cb_name) { \
-    (p)->cbs->cb_name(p, (flags)); \
-  } \
-} while (0)
-
 bool
 jiffy_parser_init(
   jiffy_parser_t * const p,
@@ -455,27 +448,19 @@ retry:
       break;
     case '+':
     case '-':
-      // clear number flags
-      p->v_num.flags = 0;
-
       SWAP(p, PARSER_STATE_NUMBER_AFTER_SIGN);
       FIRE(p, on_number_start);
+      EMIT(p, on_number_sign, byte);
       EMIT(p, on_number_byte, byte);
 
       break;
     case '0':
-      // clear number flags
-      p->v_num.flags = 0;
-
       SWAP(p, PARSER_STATE_NUMBER_AFTER_LEADING_ZERO);
       FIRE(p, on_number_start);
       EMIT(p, on_number_byte, byte);
 
       break;
     CASE_NONZERO_NUMBER
-      // clear number flags
-      p->v_num.flags = 0;
-
       SWAP(p, PARSER_STATE_NUMBER_INT);
       FIRE(p, on_number_start);
       EMIT(p, on_number_byte, byte);
@@ -598,19 +583,14 @@ retry:
     break;
   case PARSER_STATE_NUMBER_AFTER_LEADING_ZERO:
     if (byte == '.') {
-      // set fraction flag
-      p->v_num.flags |= JIFFY_NUMBER_FLAG_FRAC;
-
       SWAP(p, PARSER_STATE_NUMBER_AFTER_DOT);
+      FIRE(p, on_number_fraction);
       EMIT(p, on_number_byte, byte);
     } else if (byte == 'e' || byte == 'E') {
-      // set exponent flag
-      p->v_num.flags |= JIFFY_NUMBER_FLAG_EXP;
-
       SWAP(p, PARSER_STATE_NUMBER_AFTER_EXP);
+      FIRE(p, on_number_exponent);
       EMIT(p, on_number_byte, byte);
     } else {
-      EMIT_FLAGS(p, on_number_flags, p->v_num.flags);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -623,22 +603,17 @@ retry:
       EMIT(p, on_number_byte, byte);
       break;
     case '.':
-      // set fraction flag
-      p->v_num.flags |= JIFFY_NUMBER_FLAG_FRAC;
-
       SWAP(p, PARSER_STATE_NUMBER_AFTER_DOT);
+      FIRE(p, on_number_fraction);
       EMIT(p, on_number_byte, byte);
       break;
     case 'e':
     case 'E':
-      // set exponent flag
-      p->v_num.flags |= JIFFY_NUMBER_FLAG_EXP;
-
       SWAP(p, PARSER_STATE_NUMBER_AFTER_EXP);
+      FIRE(p, on_number_exponent);
       EMIT(p, on_number_byte, byte);
       break;
     default:
-      EMIT_FLAGS(p, on_number_flags, p->v_num.flags);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -648,9 +623,6 @@ retry:
   case PARSER_STATE_NUMBER_AFTER_DOT:
     switch (byte) {
     CASE_NUMBER
-      // set fraction flag
-      p->v_num.flags |= JIFFY_NUMBER_FLAG_FRAC;
-
       SWAP(p, PARSER_STATE_NUMBER_FRAC);
       EMIT(p, on_number_byte, byte);
 
@@ -667,14 +639,11 @@ retry:
       break;
     case 'e':
     case 'E':
-      // set exponent flag
-      p->v_num.flags |= JIFFY_NUMBER_FLAG_EXP;
-
       SWAP(p, PARSER_STATE_NUMBER_AFTER_EXP);
+      FIRE(p, on_number_exponent);
       EMIT(p, on_number_byte, byte);
       break;
     default:
-      EMIT_FLAGS(p, on_number_flags, p->v_num.flags);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
@@ -714,7 +683,6 @@ retry:
       EMIT(p, on_number_byte, byte);
       break;
     default:
-      EMIT_FLAGS(p, on_number_flags, p->v_num.flags);
       FIRE(p, on_number_end);
       POP(p);
       goto retry;
