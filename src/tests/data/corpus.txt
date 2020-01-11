@@ -17,14 +17,12 @@ null
 "\u0001"
 [5, 5.2, 5e10, 5.2e12]
 
-# causes a crash (not any more)
-# {"foo":{"foobar\r\n":true},"bar":false,"baz":[null]}
+{"foo":{"foobar\r\n":true},"bar":false,"baz":[null]}
 
-# also causes a crash (not any more)
+# all of these cases used to cause a crash
+# (but not any more)
 {"":{"":0},"":0}
-
-# another extreme case
 {"a":{"b":{},"c":{}},"d":0}
-
-# also causes a crash
 {"a":{"b":{},"c":{},"d":{"e":{}}},"f":0}
+
+{"a":{"b":{},"c":[{}],"d":{"e":[[[[{}]]]]}},"":[0,[]]}
