@@ -4,7 +4,7 @@
 #include <stdlib.h> // EXIT_*
 #include <err.h> // err(), errx(), warn()
 #include "../jiffy.h"
-#include "../test-set.h"
+#include "test-set.h"
 
 #define BUILDER_STACK_LEN 128
 static jiffy_builder_state_t builder_stack[BUILDER_STACK_LEN];
@@ -273,6 +273,10 @@ void test_builder(int argc, char *argv[]) {
     // parse line, populate builder
     if (jiffy_parse(&PARSER_CBS, parser_stack, PARSER_STACK_LEN, src_buf, len, &builder) != expect) {
       errx(EXIT_FAILURE, "jiffy_parse() failed");
+    }
+
+    if (!expect) {
+      continue;
     }
 
     // finalize builder, check for error

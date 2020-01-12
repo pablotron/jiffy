@@ -4,7 +4,7 @@
 #include <stdlib.h> // EXIT_*
 #include <err.h> // err()
 #include "../jiffy.h"
-#include "../test-set.h"
+#include "test-set.h"
 
 static void
 indent(

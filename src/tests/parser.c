@@ -4,7 +4,7 @@
 #include <stdlib.h> // EXIT_*
 #include <err.h> // err(), warn()
 #include "../jiffy.h"
-#include "../test-set.h"
+#include "test-set.h"
 
 static void on_error(
   const jiffy_parser_t * const p,

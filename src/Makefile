@@ -1,6 +1,6 @@
 CFLAGS=-O2 -W -Wall -Wextra -Werror -Wimplicit-fallthrough -pedantic -std=c11
 # CFLAGS=-O2 -W -Wall -Wextra -Werror -Wimplicit-fallthrough -pedantic -std=c11 -g -pg
-OBJS=jiffy.o tests/jiffy-test.o tests/set.o tests/parser.o tests/tree.o tests/builder.o
+OBJS=jiffy.o tests/main.o tests/test-set.o tests/parser.o tests/tree.o tests/builder.o
 APP=jiffy-test
 
 .PHONY=all clean test

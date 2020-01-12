@@ -3,7 +3,7 @@
 #include <string.h> // strlen()
 #include <stdlib.h> // EXIT_*
 #include <err.h> // errx()
-#include "jiffy.h"
+#include "../jiffy.h"
 
 extern void test_parser(int, char **);
 extern void test_tree(int, char **);
