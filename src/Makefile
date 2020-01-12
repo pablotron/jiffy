@@ -1,6 +1,6 @@
 CFLAGS=-O2 -W -Wall -Wextra -Werror -Wimplicit-fallthrough -pedantic -std=c11
 # CFLAGS=-O2 -W -Wall -Wextra -Werror -Wimplicit-fallthrough -pedantic -std=c11 -g -pg
-OBJS=jiffy.o jiffy-test.o tests/test-parser.o tests/test-tree.o tests/test-builder.o
+OBJS=jiffy.o tests/jiffy-test.o tests/set.o tests/parser.o tests/tree.o tests/builder.o
 APP=jiffy-test
 
 .PHONY=all clean test
@@ -14,7 +14,7 @@ $(APP): $(OBJS)
 	$(CC) -c -o $@ $(CFLAGS) $<
 
 test: $(APP)
-	./$(APP) all ./tests/data/corpus.txt
+	./$(APP) all ./tests/corpus.txt
 
 clean:
 	$(RM) $(OBJS) $(APP)

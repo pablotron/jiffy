@@ -1,8 +1,10 @@
+#include <stdbool.h> // bool
 #include <stdio.h> // printf()
 #include <string.h> // strlen()
 #include <stdlib.h> // EXIT_*
 #include <err.h> // err(), errx(), warn()
 #include "../jiffy.h"
+#include "../test-set.h"
 
 #define BUILDER_STACK_LEN 128
 static jiffy_builder_state_t builder_stack[BUILDER_STACK_LEN];
@@ -30,7 +32,7 @@ static void on_builder_error(
   const jiffy_err_t err
 ) {
   (void) builder;
-  errx(EXIT_FAILURE, "builder error: %s", jiffy_err_to_s(err));
+  warnx("builder error: %s", jiffy_err_to_s(err));
 }
 
 static const jiffy_builder_cbs_t BUILDER_CBS = {
@@ -61,7 +63,7 @@ on_parser_error(
   const jiffy_err_t err
 ) {
   (void) p;
-  errx(EXIT_FAILURE, "builder error: %s", jiffy_err_to_s(err));
+  warnx("builder error: %s", jiffy_err_to_s(err));
 }
 static void on_parser_object_start(
   const jiffy_parser_t * const p
@@ -247,54 +249,38 @@ void test_builder(int argc, char *argv[]) {
     .buf = (uint8_t*) dst_buf,
     .len = 0,
   };
-      
-  for (int i = 0; i < argc; i++) {
-    // open input file
-    FILE *fh = fopen(argv[i], "r");
-    if (!fh) {
-      err(EXIT_FAILURE, "fopen(): ");
+
+  // init test set
+  test_set_t set;
+  if (!test_set_init(&set, argc, argv)) {
+    return;
+  }
+
+  size_t len;
+  bool expect;
+  while (test_set_next(&set, src_buf, sizeof(src_buf), &expect, &len)) {
+    warnx("I: src = %s", src_buf);
+
+    // clear builder data
+    builder_data.len = 0;
+
+    // init builder, check for error
+    jiffy_builder_t builder;
+    if (!jiffy_builder_init(&builder, &BUILDER_CBS, builder_stack, BUILDER_STACK_LEN, &builder_data)) {
+      errx(EXIT_FAILURE, "jiffy_builder_init() failed");
     }
 
-    while (fgets(src_buf, sizeof(src_buf), fh)) {
-      // read input line
-      const size_t len = strlen(src_buf);
-      if (len < 2 || src_buf[0] == '#') {
-        // skip empty lines and commented lines
-        continue;
-      }
-
-      // strip newline
-      src_buf[len - 1] = '\0';
-
-      warnx("I: src = %s", src_buf);
-
-      // clear builder data
-      builder_data.len = 0;
-
-      // init builder, check for error
-      jiffy_builder_t builder;
-      if (!jiffy_builder_init(&builder, &BUILDER_CBS, builder_stack, BUILDER_STACK_LEN, &builder_data)) {
-        errx(EXIT_FAILURE, "jiffy_builder_init() failed");
-      }
-
-      // parse line, check for error
-      if (!jiffy_parse(&PARSER_CBS, parser_stack, PARSER_STACK_LEN, src_buf, len - 1, &builder)) {
-        errx(EXIT_FAILURE, "jiffy_parse() failed");
-      }
-
-      // finalize builder, check for error
-      if (!jiffy_builder_fini(&builder)) {
-        errx(EXIT_FAILURE, "jiffy_builder_fini() failed");
-      }
-
-      dst_buf[builder_data.len] = '\0';
-      warnx("I: dst = %s", dst_buf);
+    // parse line, populate builder
+    if (jiffy_parse(&PARSER_CBS, parser_stack, PARSER_STACK_LEN, src_buf, len, &builder) != expect) {
+      errx(EXIT_FAILURE, "jiffy_parse() failed");
     }
 
-    // close input file, check for error
-    if (fclose(fh)) {
-      // warn that fclose failed, but continue
-      warn("fclose(): ");
+    // finalize builder, check for error
+    if (!jiffy_builder_fini(&builder)) {
+      errx(EXIT_FAILURE, "jiffy_builder_fini() failed");
     }
+
+    dst_buf[builder_data.len] = '\0';
+    warnx("I: dst = %s", dst_buf);
   }
 }

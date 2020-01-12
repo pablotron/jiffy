@@ -1,0 +1,52 @@
+#
+# JSON parsing test cases
+#
+# Format:
+# * lines that begin with '#' and blank lines are ignored
+# * lines that begin with P are expected to pass
+# * lines that begin with F are expected to fail
+#
+
+# simple tests
+P {}
+P []
+P true
+P false
+P null
+P 0
+P -1
+P "foo"
+P 5
+P {"foo":true,"bar":false,"baz":[null]}
+P [null,null,null]
+P [1e1]
+P "\u0020"
+P "\uffff"
+P "\u0001"
+P [5, 5.2, 5e10, 5.2e12]
+
+P {"foo":{"foobar\r\n":true},"bar":false,"baz":[null]}
+
+# all of these cases used to cause a crash
+# (but not any more)
+P {"":{"":0},"":0}
+P {"a":{"b":{},"c":{}},"d":0}
+P {"a":{"b":{},"c":{},"d":{"e":{}}},"f":0}
+P {"a":{"b":{},"c":[{}],"d":{"e":[[[[{}]]]]}},"":[0,[]]}
+
+# failing tests
+F {
+F }
+F [
+F ]
+F [[]
+F tru
+F fals
+F nul
+F 0.
+F .0
+F -.0
+F 1e
+F 1e-
+F "foo\"
+F -

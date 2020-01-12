@@ -1,8 +1,10 @@
+#include <stdbool.h> // bool
 #include <stdio.h> // printf()
 #include <string.h> // strlen()
 #include <stdlib.h> // EXIT_*
 #include <err.h> // err(), warn()
 #include "../jiffy.h"
+#include "../test-set.h"
 
 static void on_error(
   const jiffy_parser_t * const p,
@@ -176,35 +178,21 @@ static uint32_t stack_mem[STACK_LEN];
 void test_parser(int argc, char *argv[]) {
   char buf[1024];
 
-  for (int i = 0; i < argc; i++) {
-    FILE *fh = fopen(argv[i], "rb");
-    if (!fh) {
-      err(EXIT_FAILURE, "fopen(): ");
+  test_set_t set;
+  if (!test_set_init(&set, argc, argv)) {
+    return;
+  }
+
+  bool expect;
+  size_t len;
+  while (test_set_next(&set, buf, sizeof(buf), &expect, &len)) {
+    warnx("D: parsing: \"%s\"", buf);
+
+    // parse line
+    if (jiffy_parse(&CBS, stack_mem, STACK_LEN, buf, len, NULL) != expect) {
+      errx(EXIT_FAILURE, "jiffy_parse() test failed.");
     }
 
-    while (fgets(buf, sizeof(buf), fh)) {
-      const size_t len = strlen(buf);
-      if (len < 2 || buf[0] == '#') {
-        // skip line
-        continue;
-      }
-
-      // strip newline
-      buf[len - 1] = '\0';
-
-      warnx("D: parsing: %s", buf);
-
-      // parse line
-      if (!jiffy_parse(&CBS, stack_mem, STACK_LEN, buf, len - 1, NULL)) {
-        errx(EXIT_FAILURE, "jiffy_parse() failed.");
-      }
-
-      warnx("D: parsing done");
-    }
-
-    // close input
-    if (fclose(fh)) {
-      warn("fclose(): ");
-    }
+    warnx("D: parsing done");
   }
 }

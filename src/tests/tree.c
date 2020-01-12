@@ -1,8 +1,10 @@
+#include <stdbool.h> // bool
 #include <stdio.h> // printf()
 #include <string.h> // strlen()
 #include <stdlib.h> // EXIT_*
 #include <err.h> // err()
 #include "../jiffy.h"
+#include "../test-set.h"
 
 static void
 indent(
@@ -110,7 +112,7 @@ on_parse_error(
   const jiffy_err_t err
 ) {
   (void) tree;
-  errx(EXIT_FAILURE, "parse error: %s", jiffy_err_to_s(err));
+  warnx("parse error: %s", jiffy_err_to_s(err));
 }
 
 static const jiffy_tree_cbs_t
@@ -121,53 +123,41 @@ TREE_CBS = {
 void test_tree(int argc, char *argv[]) {
   char buf[1024];
 
-  for (int i = 0; i < argc; i++) {
-    // open input file
-    FILE *fh = fopen(argv[i], "rb");
-    if (!fh) {
-      err(EXIT_FAILURE, "fopen(): ");
+  test_set_t set;
+  if (!test_set_init(&set, argc, argv)) {
+    return;
+  }
+
+  bool expect;
+  size_t len;
+  while (test_set_next(&set, buf, sizeof(buf), &expect, &len)) {
+    warnx("src_buf = \"%s\"", buf);
+
+    // create parse tree, check for error
+    jiffy_tree_t tree;
+    // if (!jiffy_tree_new_ex(&tree, NULL, stack_mem, STACK_LEN, buf, len - 1, NULL))
+    if (jiffy_tree_new(&tree, &TREE_CBS, buf, len, NULL) != expect) {
+      errx(EXIT_FAILURE, "jiffy_tree_new()");
     }
 
-    while (fgets(buf, sizeof(buf), fh)) {
-      // get line length
-      const size_t len = strlen(buf);
-      if (len < 2 || buf[0] == '#') {
-        // skip empty lines
-        continue;
-      }
-
-      // strip newline, terminate
-      buf[len - 1] = '\0';
-      warnx("src_buf = \"%s\"", buf);
-
-      // create parse tree, check for error
-      jiffy_tree_t tree;
-      // if (!jiffy_tree_new_ex(&tree, NULL, stack_mem, STACK_LEN, buf, len - 1, NULL))
-      if (!jiffy_tree_new(&tree, &TREE_CBS, buf, len - 1, NULL)) {
-        errx(EXIT_FAILURE, "jiffy_tree_new()");
-      }
-
-      // get the root value of tree
-      const jiffy_value_t *root = jiffy_tree_get_root_value(&tree);
-      if (!root) {
-        errx(EXIT_FAILURE, "jiffy_tree_get_root_value() failed");
-      }
-
-      // print root value type
-      const jiffy_type_t root_type = jiffy_value_get_type(root);
-      const char * const type_name = jiffy_type_to_s(root_type);
-      fprintf(stderr, "D: type = %s\n", type_name);
-
-      dump_value(root, 0);
-
-      // free tree
-      jiffy_tree_free(&tree);
+    if (!expect) {
+      continue;
     }
 
-    // close input file, check for error
-    if (fclose(fh)) {
-      // warn on fclose() failure, continue
-      warn("fclose(): ");
+    // get the root value of tree
+    const jiffy_value_t *root = jiffy_tree_get_root_value(&tree);
+    if (!root) {
+      errx(EXIT_FAILURE, "jiffy_tree_get_root_value() failed");
     }
+
+    // print root value type
+    const jiffy_type_t root_type = jiffy_value_get_type(root);
+    const char * const type_name = jiffy_type_to_s(root_type);
+    fprintf(stderr, "D: type = %s\n", type_name);
+
+    dump_value(root, 0);
+
+    // free tree
+    jiffy_tree_free(&tree);
   }
 }
